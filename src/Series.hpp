@@ -1,0 +1,227 @@
+#ifndef SERIES_HPP
+#define SERIES_HPP
+
+#include <any>
+#include <cstddef>
+#include <iostream>
+#include <memory>
+#include <stdexcept>
+#include <string>
+#include <type_traits>
+#include <typeinfo>
+#include <vector>
+
+using namespace std;
+
+// Interface for Series
+/**
+ * @brief Interface for a series data structure.
+ * 
+ * This interface defines the common operations that can be performed on a series.
+ */
+class ISeries {
+public:
+    /**
+     * @brief Destructor for the ISeries class.
+     */
+    virtual ~ISeries() {}
+
+    /**
+     * @brief Adds a value to the series.
+     * 
+     * @param value The value to be added.
+     */
+    virtual void add(const any& value) = 0;
+
+    /**
+     * @brief Returns the type information of the series.
+     * 
+     * @return The type information of the series.
+     */
+    virtual const type_info& type() const = 0;
+
+    /**
+     * @brief Returns the size of the series.
+     * 
+     * @return The size of the series.
+     */
+    virtual size_t size() const = 0;
+
+    /**
+     * @brief Prints the series.
+     */
+    virtual void print() const = 0;
+
+    /**
+     * @brief Returns the data at the specified index in the series.
+     * 
+     * @param index The index of the data to retrieve.
+     * @return The data at the specified index.
+     */
+    virtual string getDataAtIndex(size_t index) const = 0;
+};
+
+/**
+ * Converts a value to a string representation.
+ * 
+ * This function converts the given value to a string representation. If the value is of type string or const char*, it is directly converted to a string. Otherwise, it is converted using the to_string function.
+ * 
+ * @tparam T The type of the value to be converted.
+ * @param value The value to be converted.
+ * @return The string representation of the value.
+ */
+template<typename T>
+string convertToString(const T& value) {
+    if constexpr (is_same_v<T, string> || is_same_v<T, const char*>) {
+        return string(value);
+    } else {
+        return to_string(value);
+    }
+}
+
+
+/**
+ * @brief A template class representing a series of data.
+ * 
+ * This class stores a series of data of type T and provides some operations
+ * to manipulate and access the data.
+ */
+template<typename T>
+class Series : public ISeries {
+private:
+    vector<T> data; /**< The vector storing the data of type T. */
+    string name; /**< The name of the series. */
+
+public:
+    /**
+     * @brief Constructs a new Series object with the given name.
+     * 
+     * @param name The name of the series.
+     */
+    Series(const string& name) : name(name) {}
+
+    /**
+     * @brief Adds a value to the series.
+     * 
+     * This function adds a value to the series after performing type checking.
+     * If the type of the value does not match the type of the series, a
+     * runtime_error is thrown.
+     * 
+     * @param value The value to be added to the series.
+     * @throws runtime_error if the type of the value does not match the type of the series.
+     */
+    void add(const any& value) override {
+        try {
+            // Safely adding value to the series after type checking.
+            const T& castedValue = any_cast<const T&>(value);
+            data.push_back(castedValue);
+        } catch (const bad_any_cast&) {
+            // Handling the case where the type does not match.
+            throw runtime_error("Type mismatch error: Unable to add value to Series.");
+        }
+    }
+
+    /**
+     * @brief Returns the type information of the series.
+     * 
+     * @return The type information of the series.
+     */
+    const type_info& type() const override {
+        return typeid(T);
+    }
+
+    /**
+     * @brief Returns the size of the series.
+     * 
+     * @return The size of the series.
+     */
+    size_t size() const override {
+        return data.size();
+    }
+
+    /**
+     * @brief Sets the name of the series.
+     * 
+     * @param name The name of the series.
+     */
+    void setName(const string& name) {
+        this->name = name;
+    }
+
+    /**
+     * @brief Returns the name of the series.
+     * 
+     * @return The name of the series.
+     */
+    const string& getName() const {
+        return name;
+    }
+
+    /**
+     * @brief Returns the data stored in the series.
+     * 
+     * @return The data stored in the series.
+     */
+    const vector<T>& getData() const {
+        return data;
+    }
+
+    /**
+     * @brief Returns the value at the specified index in the series.
+     * 
+     * @param index The index of the value to be accessed.
+     * @return The value at the specified index in the series.
+     */
+    const T& operator[](size_t index) const {
+        return data[index];
+    }
+
+    /**
+     * @brief Returns a reference to the value at the specified index in the series.
+     * 
+     * @param index The index of the value to be accessed.
+     * @return A reference to the value at the specified index in the series.
+     */
+    T& operator[](size_t index) {
+        return data[index];
+    }
+
+    /**
+     * @brief Returns the data at the specified index as a string.
+     * 
+     * If the type of the data is string, the data is returned as is.
+     * For other types, the data is converted to a string using the convertToString function.
+     * 
+     * @param index The index of the data to be accessed.
+     * @return The data at the specified index as a string.
+     * @throws out_of_range if the index is out of range.
+     */
+    string getDataAtIndex(size_t index) const override {
+        if (index >= data.size()) {
+            throw out_of_range("Index out of range");
+        }
+        // Specialization for string to bypass to_string
+        if constexpr (is_same<T, string>::value) {
+            return data[index];
+        } else {
+            // Use to_string for basic types; might need customization for others
+            return convertToString(data[index]);
+        }
+    }
+
+    /**
+     * @brief Prints the series information to the standard output.
+     * 
+     * The series name, type, size, and data are printed to the standard output.
+     */
+    void print() const override {
+        cout << "Series name: " << name << "\nSeries type: " << type().name()
+             << "\nSeries size: " << size() << "\nSeries data: ";
+        for (const auto& value : data) {
+            cout << getDataAtIndex(&value - &data[0]) << " ";
+        }
+        cout << endl;
+    }
+};
+
+#endif // SERIES_HPP
