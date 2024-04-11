@@ -65,7 +65,8 @@ def generate_user():
         id=faker.unique.numerify(text="1########"),
         name=faker.name(),
         email=faker.email(),
-        address=faker.address(),
+        # create a fake address, using faker.street, faker.cityt, etc
+        address= f"{faker.street_address()}, {faker.city()}, {faker.state()}, {faker.zipcode()}, {faker.country()}",
         # registration = current timestamp
         registration_date = str(time.time_ns()),
         birth_date=faker.date_of_birth(minimum_age=18, maximum_age=100).isoformat(),
