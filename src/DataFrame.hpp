@@ -77,6 +77,56 @@ public:
     }
 
     /**
+     * @brief Drop a column from the DataFrame.
+     * 
+     * This method removes a column from the DataFrame based on the column name.
+     *  
+     * @param columnName The name of the column to be removed.
+     * @throws runtime_error If the column does not exist.
+     */
+    void dropColumn(const string& columnName) {
+        auto colIt = columns.find(columnName);
+        if (colIt == columns.end()) {
+            throw runtime_error("Column not found." + columnName);
+        }
+
+        // Remove the column from the map
+        columns.erase(colIt);
+
+        // Remove the column name from the vector, deleting the column object
+        columnNames.erase(remove(columnNames.begin(), columnNames.end(), columnName), columnNames.end());
+    }
+
+    /**
+     * @brief Adds a new column to the DataFrame.
+     * 
+     * Adds a new column to the DataFrame with the specified column name and default value.
+     * 
+     * @tparam T The type of the column values.
+     * @param columnName The name of the new column.
+     * @param defaultValue The default value to be filled in the new column for each existing row.
+     * @throws std::runtime_error if a column with the same name already exists.
+     */
+    template<typename T>
+    void addColumn(const string& columnName, const T& defaultValue) {
+        if (columns.find(columnName) != columns.end()) {
+            throw runtime_error("Column already exists." + columnName);
+        }
+
+        // Create a new Series object for the new column
+        auto newColumn = make_shared<Series<T>>(columnName);
+
+        // Fill the column with the default value for each existing row
+        for (size_t i = 0; i < rowCount; ++i) {
+            newColumn->add(defaultValue);
+        }
+
+        // Add the new column to the DataFrame
+        columns[columnName] = newColumn;
+        columnNames.push_back(columnName);
+    }
+
+    /**
      * @brief Print the DataFrame.
      * 
      * This method prints the entire DataFrame to the console.

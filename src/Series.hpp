@@ -71,13 +71,24 @@ public:
  * @return The string representation of the value.
  */
 template<typename T>
-string convertToString(const T& value) {
-    if constexpr (is_same_v<T, string> || is_same_v<T, const char*>) {
-        return string(value);
+std::string convertToString(const T& value) {
+    if constexpr (std::is_same_v<T, std::string>) {
+        return value; // Directly return std::string values
+    } else if constexpr (std::is_same_v<T, const char*> || std::is_same_v<T, char*>) {
+        return std::string(value); // Convert C-style string to std::string
+    } else if constexpr (std::is_same_v<T, char>) {
+        // Handle char type specifically to avoid treating it as an integer
+        return std::string(1, value);
+    } else if constexpr (std::is_arithmetic_v<T>) {
+        return std::to_string(value); // Use std::to_string for numeric types
     } else {
-        return to_string(value);
+        // Fallback for types not directly supported by std::to_string
+        // This requires a way to convert custom types to std::string
+        static_assert(std::is_arithmetic_v<T> || std::is_same_v<T, char>, "Type not supported for conversion to std::string.");
+        return ""; // Placeholder return for unsupported types to satisfy all control paths
     }
 }
+
 
 
 /**

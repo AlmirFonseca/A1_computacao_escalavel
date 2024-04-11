@@ -19,6 +19,16 @@ int main() {
         // This part is pseudocode and needs actual implementation in DataFrame
         df.print();
 
+        // Test deleting the column "Name"
+        df.dropColumn("Name");
+        df.print();
+
+        // Test the method addColumn
+        df.addColumn("Status", string("Off"));
+        df.addColumn("Grade", 'F');
+        df.addColumn("Value", 0);
+        df.print();
+
     } catch (const std::exception& e) {
         std::cerr << "Exception occurred: " << e.what() << std::endl;
     }
