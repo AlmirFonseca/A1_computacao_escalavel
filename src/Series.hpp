@@ -59,6 +59,13 @@ public:
      * @return The data at the specified index.
      */
     virtual string getDataAtIndex(size_t index) const = 0;
+
+    /**
+     * @brief Removes the data at the specified index in the series.
+     * 
+     * @param index The index of the data to remove.
+     */
+    virtual void removeAtIndex(size_t index) = 0;
 };
 
 /**
@@ -217,6 +224,20 @@ public:
         } else {
             // Use to_string for basic types; might need customization for others
             return convertToString(data[index]);
+        }
+    }
+
+    /**
+     * @brief Removes the data at the specified index in the series.
+     * 
+     * @param index The index of the data to be removed.
+     * @throws out_of_range if the index is out of range.
+     */
+    void removeAtIndex(size_t index) {
+        if (index < data.size()) {
+            data.erase(data.begin() + index);
+        } else {
+            throw std::out_of_range("Index out of range for Series removal.");
         }
     }
 

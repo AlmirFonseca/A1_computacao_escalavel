@@ -127,6 +127,30 @@ public:
     }
 
     /**
+     * @brief Drop a row from the DataFrame.
+     * 
+     * This method removes a row from the DataFrame based on the row index.
+     * 
+     * @param rowIndex The index of the row to be removed.
+     * @throws std::out_of_range If the row index is out of range.
+     */
+    void dropRow(size_t rowIndex) {
+        // Check if the rowIndex is valid
+        if (rowIndex >= rowCount) {
+            throw std::out_of_range("Row index out of range.");
+        }
+
+        // Iterate through each column and remove the element at rowIndex
+        for (auto& colPair : columns) {
+            auto& series = colPair.second;
+            series->removeAtIndex(rowIndex);
+        }
+
+        // Decrement the rowCount
+        --rowCount;
+    }
+
+    /**
      * @brief Print the DataFrame.
      * 
      * This method prints the entire DataFrame to the console.

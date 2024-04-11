@@ -29,6 +29,10 @@ int main() {
         df.addColumn("Value", 0);
         df.print();
 
+        // Test the method dropRow over the second row (index 1)
+        df.dropRow(1);
+        df.print();
+
     } catch (const std::exception& e) {
         std::cerr << "Exception occurred: " << e.what() << std::endl;
     }
