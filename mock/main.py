@@ -14,7 +14,8 @@ if __name__ == "__main__":
         cycle_duration=1,
         num_initial_users=5,
         num_initial_products=2,
-        max_simultaneus_users=100
+        qtd_stock_initial=100,
+        max_simultaneus_users=10
     )
     sim = simulation.Simulation(params)
 

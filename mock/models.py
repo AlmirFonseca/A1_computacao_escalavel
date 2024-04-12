@@ -6,7 +6,6 @@ from random import choice
 from typing import Optional
 import time
 
-
 @dataclass
 class User:
     id: str
@@ -33,6 +32,7 @@ class Stock:
 class Purchase_Order:
     user_id: str
     product_id: str
+    quantity: int
     creation_date: str
     payment_date: str
     delivery_date: str
@@ -75,29 +75,32 @@ def generate_user():
 def generate_product():
     """Generates a Product dataclass instance with unique data."""
     faker = FakerSingleton().get_faker()
+    # faker.add_provider(faker_commerce.Provider)
+
     return Product(
         # create a fake product id, numeric, starting always with 2 and unique
         id=faker.unique.numerify(text="2######"),
-        name=faker.domain_word(),
+        name=faker.word(),
         image=faker.image_url(),
         description=faker.sentence(),
         price=faker.random_int(min=1, max=1000),
     )
 
-def generate_stock(product_id: str):
+def generate_stock(product_id: str, quantity: int):
     """Generates a Stock dataclass instance with unique data."""
     faker = FakerSingleton().get_faker()
     return Stock(
         id_product=product_id,
-        quantity=faker.random_int(min=1, max=1000),
+        quantity=quantity,
     )
 
-def generate_purchase_order(user_id: str, product_id: str):
+def generate_purchase_order(user_id: str, product_id: str, quantity: int):
     """Generates a Purchase_Order dataclass instance with unique data."""
     faker = FakerSingleton().get_faker()
     return Purchase_Order(
         user_id=user_id,
         product_id=product_id,
+        quantity=quantity,
         creation_date=str(time.time_ns()),
         payment_date=str(time.time_ns()),
         delivery_date=str(time.time_ns()),
