@@ -9,6 +9,7 @@
 #include <iostream>
 #include <stdexcept>
 #include <iomanip>
+#include <initializer_list>
 
 #include "Series.hpp"
 
@@ -28,12 +29,38 @@ private:
     size_t rowCount = 0; /**< The number of rows in the DataFrame. */
 
 public:
-    /**
-     * @brief Constructor that takes an initializer list of column names.
-     * 
-     * @param names An initializer list of column names.
-     */
-    DataFrame(initializer_list<string> names) : columnNames(names) {}
+    // /**
+    //  * @brief Constructor that takes an initializer list of column names.
+    //  * 
+    //  * @param names An initializer list of column names.
+    //  */
+    // DataFrame(initializer_list<string> names) : columnNames(names) {}
+
+    // Default constructor
+    DataFrame() = default;
+
+    // Constructor that takes an initializer list of column names
+    DataFrame(initializer_list<string> names) {
+        for (const auto& name : names) {
+            // Optionally initialize each column to a new Series of a default type
+            // e.g., Series<int> if you want to specify a default type
+            columns[name] = make_shared<Series<int>>(name);
+            columnNames.push_back(name);
+        }
+    }
+
+    // Copy constructor
+    DataFrame(const DataFrame& other) = default;
+
+    // Move constructor
+    DataFrame(DataFrame&& other) noexcept = default;
+
+    // Destructor
+    virtual ~DataFrame() = default;
+
+    // Assignment operators
+    DataFrame& operator=(const DataFrame& other) = default;
+    DataFrame& operator=(DataFrame&& other) noexcept = default;
 
     /**
      * @brief Add a row to the DataFrame.
@@ -151,6 +178,83 @@ public:
     }
 
     /**
+     * @brief Print the types of each column in the DataFrame.
+     * 
+     * This method prints the type of each column in the DataFrame to the console.
+     */
+    void printColumnTypes() const {
+        for (const auto& [name, series] : columns) {
+            cout << name << ": " << series->type().name() << endl;
+        }
+    }
+
+    /**
+     * @brief Filter the DataFrame by a column value.
+     * 
+     * This method filters the DataFrame by a column value.
+     * It removes rows where the value in the specified column does not match the filter value.
+     * 
+     * @param columnName The name of the column to filter by.
+     * @param filterValue The value to filter by.
+     * @throws std::runtime_error If the column does not exist.
+     */
+    void filterByColumn(const std::string& columnName, const std::any& filterValue) {
+        auto colIt = columns.find(columnName);
+        if (colIt == columns.end()) {
+            throw std::runtime_error("Column not found: " + columnName);
+        }
+
+        const auto& columnType = colIt->second->type();  // Retrieve the type_info of the column
+        for (size_t i = rowCount - 1; i != (size_t)-1; --i) {
+            const std::any& columnValue = colIt->second->getDataAtIndex(i);
+
+            if (!compareAny(columnType, columnValue, filterValue)) {
+
+                // Remove the row from each Series if the values do not match
+                for (auto& [name, series] : columns) {
+                    series->removeAtIndex(i);
+                }
+                --rowCount;
+            }
+        }
+    }
+
+    /**
+     * @brief Compare two std::any values of the same type.
+     * 
+     * This function compares two std::any values of the same type.
+     * It is used to compare the values of a column with a filter value.
+     * 
+     * @param typeInfo The type_info of the values to be compared.
+     * @param a The first value to be compared.
+     * @param b The second value to be compared.
+     * @return true if the values match, false otherwise.
+     */
+    bool compareAny(const std::type_info& typeInfo, const std::any& a, const std::any& b) {
+        if (a.type() != b.type()) return false;  // Early exit if types don't match directly
+
+        try {
+            if (typeInfo == typeid(int)) {
+                return std::any_cast<int>(a) == std::any_cast<int>(b);
+            } else if (typeInfo == typeid(double)) {
+                return std::any_cast<double>(a) == std::any_cast<double>(b);
+            } else if (typeInfo == typeid(std::string)) {
+                return std::any_cast<std::string>(a) == std::any_cast<std::string>(b);
+            } else if (typeInfo == typeid(char)) {
+                // Special handling for chars to avoid treating them as integers
+                return std::any_cast<char>(a) == std::any_cast<char>(b);
+            }
+            // Add more types as needed
+        } catch (const std::bad_any_cast&) {
+            // Log error or handle exception as needed
+            return false; // Return false if any cast fails
+        }
+
+        return false; // If type is not handled, return false
+    }
+
+
+    /**
      * @brief Print the DataFrame.
      * 
      * This method prints the entire DataFrame to the console.
@@ -180,7 +284,7 @@ public:
         for (size_t rowIndex = startIndex; rowIndex <= endIndex; ++rowIndex) {
             for (const auto& columnName : columnNames) {
                 // Directly access and print the data for each column at rowIndex
-                cout << columns.at(columnName)->getDataAtIndex(rowIndex) << "\t";
+                cout << columns.at(columnName)->getStringAtIndex(rowIndex) << "\t";
             }
             cout << endl;
         }

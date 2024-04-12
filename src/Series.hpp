@@ -53,19 +53,27 @@ public:
     virtual void print() const = 0;
 
     /**
-     * @brief Returns the data at the specified index in the series.
-     * 
-     * @param index The index of the data to retrieve.
-     * @return The data at the specified index.
-     */
-    virtual string getDataAtIndex(size_t index) const = 0;
-
-    /**
      * @brief Removes the data at the specified index in the series.
      * 
      * @param index The index of the data to remove.
      */
     virtual void removeAtIndex(size_t index) = 0;
+
+    /**
+     * @brief Returns a string representation of the data at the specified index in the series.
+     * 
+     * @param index The index of the data to be accessed.
+     * @return The string representation of the data at the specified index in the series.
+     */
+    virtual string getStringAtIndex(size_t index) const = 0;
+
+    /**
+     * @brief Returns the data at the specified index in the series.
+     * 
+     * @param index The index of the data to be accessed.
+     * @return The data at the specified index in the series.
+     */
+    virtual any getDataAtIndex(size_t index) const = 0;
 };
 
 /**
@@ -135,7 +143,7 @@ public:
             data.push_back(castedValue);
         } catch (const bad_any_cast&) {
             // Handling the case where the type does not match.
-            throw runtime_error("Type mismatch error: Unable to add value to Series.");
+            throw runtime_error("Type mismatch error: Unable to add value to Series " + name + " (expected " + string(type().name()) + ", received " + value.type().name() + ")");
         }
     }
 
@@ -205,6 +213,20 @@ public:
     }
 
     /**
+     * @brief Removes the data at the specified index in the series.
+     * 
+     * @param index The index of the data to be removed.
+     * @throws out_of_range if the index is out of range.
+     */
+    void removeAtIndex(size_t index) {
+        if (index < data.size()) {
+            data.erase(data.begin() + index);
+        } else {
+            throw std::out_of_range("Index out of range for Series removal.");
+        }
+    }
+    
+    /**
      * @brief Returns the data at the specified index as a string.
      * 
      * If the type of the data is string, the data is returned as is.
@@ -214,7 +236,7 @@ public:
      * @return The data at the specified index as a string.
      * @throws out_of_range if the index is out of range.
      */
-    string getDataAtIndex(size_t index) const override {
+    string getStringAtIndex(size_t index) const override {
         if (index >= data.size()) {
             throw out_of_range("Index out of range");
         }
@@ -228,17 +250,17 @@ public:
     }
 
     /**
-     * @brief Removes the data at the specified index in the series.
+     * @brief Returns the data at the specified index in the series.
      * 
-     * @param index The index of the data to be removed.
+     * @param index The index of the data to be accessed.
+     * @return The data at the specified index in the series.
      * @throws out_of_range if the index is out of range.
      */
-    void removeAtIndex(size_t index) {
-        if (index < data.size()) {
-            data.erase(data.begin() + index);
-        } else {
-            throw std::out_of_range("Index out of range for Series removal.");
+    any getDataAtIndex(size_t index) const override {
+        if (index >= data.size()) {
+            throw out_of_range("Index out of range");
         }
+        return data[index];
     }
 
     /**
@@ -250,7 +272,7 @@ public:
         cout << "Series name: " << name << "\nSeries type: " << type().name()
              << "\nSeries size: " << size() << "\nSeries data: ";
         for (const auto& value : data) {
-            cout << getDataAtIndex(&value - &data[0]) << " ";
+            cout << any_cast<const T&>(value) << " "; // This requires that T is stream-insertable
         }
         cout << endl;
     }
