@@ -14,6 +14,7 @@ if __name__ == "__main__":
         cycle_duration=1,
         num_initial_users=5,
         num_initial_products=2,
+        max_simultaneus_users=100
     )
     sim = simulation.Simulation(params)
 

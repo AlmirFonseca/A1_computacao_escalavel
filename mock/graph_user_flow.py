@@ -1,9 +1,11 @@
-LOGIN = "Login"
-HOME = "Home"
-VIEW_PRODUCT = "View Product"
-CART = "Cart"
-CHECKOUT = "Checkout"
-EXIT = "Exit"
+import networkx as nx
+
+LOGIN = "LOGIN"
+HOME = "HOME"
+VIEW_PRODUCT = "VIEW_PRODUCT"
+CART = "CART"
+CHECKOUT = "CHECKOUT"
+EXIT = "EXIT"
 
 nodes = [LOGIN, HOME, VIEW_PRODUCT, CART, CHECKOUT, EXIT]
 
@@ -20,3 +22,8 @@ edges = [
     (CHECKOUT, EXIT, {"prob": 0.9}),
     (CHECKOUT, HOME, {"prob": 0.1}),
 ]
+
+
+G = nx.DiGraph()
+G.add_nodes_from(nodes)
+G.add_edges_from(edges)
