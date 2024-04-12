@@ -51,6 +51,30 @@ int main() {
         df.print();
         cout << endl;
 
+        df.addRow(5, 100.0, string("On"), 'A', 1);
+        df.addRow(6, 100.0, string("On"), 'A', 0);
+        df.addRow(7, 100.0, string("Off"), 'A', 1);
+        df.addRow(8, 100.0, string("Off"), 'A', 0);
+        df.print();
+        cout << endl;
+
+        cout << "KEEP FALSE" << endl;
+        df.filterByColumn("Score", 100.0, false); // false means (remove the rows that are don't match)
+        df.print();
+        cout << endl;
+
+        df.addRow(5, 100.0, string("On"), 'A', 1);
+        df.addRow(6, 100.0, string("On"), 'A', 0);
+        df.addRow(7, 100.0, string("Off"), 'A', 1);
+        df.print();
+        cout << endl;
+
+        cout << "KEEP TRUE" << endl;
+        df.filterByColumn("Score", 100.0, true); // true means (keep the rows that are match)
+        df.print();
+        cout << endl;
+        df.addRow(8, 100.0, string("Off"), 'A', 0);
+
     } catch (const std::exception& e) {
         std::cerr << "Exception occurred: " << e.what() << std::endl;
     }

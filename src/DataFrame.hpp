@@ -189,28 +189,32 @@ public:
     }
 
     /**
-     * @brief Filter the DataFrame by a column value.
+     * @brief Filter the DataFrame by a column.
      * 
-     * This method filters the DataFrame by a column value.
-     * It removes rows where the value in the specified column does not match the filter value.
+     * This method filters the DataFrame by a column based on a filter value.
+     * The method removes rows that do not match the filter value.
      * 
      * @param columnName The name of the column to filter by.
      * @param filterValue The value to filter by.
+     * @param keep A flag to indicate whether to keep or remove rows that match the filter value.
      * @throws std::runtime_error If the column does not exist.
      */
-    void filterByColumn(const std::string& columnName, const std::any& filterValue) {
+    void filterByColumn(const std::string& columnName, const std::any& filterValue, bool keep = true) {
         auto colIt = columns.find(columnName);
         if (colIt == columns.end()) {
             throw std::runtime_error("Column not found: " + columnName);
         }
 
         const auto& columnType = colIt->second->type();  // Retrieve the type_info of the column
-        for (size_t i = rowCount - 1; i != (size_t)-1; --i) {
+
+        // Iterate from the last index to the first
+        for (size_t i = rowCount; i-- > 0;) {
             const std::any& columnValue = colIt->second->getDataAtIndex(i);
+            bool comparisonResult = compareAny(columnType, columnValue, filterValue);
 
-            if (!compareAny(columnType, columnValue, filterValue)) {
-
-                // Remove the row from each Series if the values do not match
+            // Decide whether to remove the row based on the `keep` flag and comparison result
+            if ((keep && !comparisonResult) || (!keep && comparisonResult)) {
+                // Remove the row from each Series if the values do not match the desired condition
                 for (auto& [name, series] : columns) {
                     series->removeAtIndex(i);
                 }
