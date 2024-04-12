@@ -53,13 +53,5 @@ int main() {
     cout << "\nDisplaying stringSeries info and data:\n";
     stringSeries.print();
 
-    try{
-        doubleSeries.addString(string("1010.1"));
-        cout << "Added string to doubleSeries\n";
-        doubleSeries.print();
-    } catch (const runtime_error& e) {
-        cout << "Caught an error in doubleSeries: " << e.what() << endl;
-    }
-
     return 0;
 }

@@ -167,34 +167,6 @@ public:
         }
     }
 
-    // Function to receive a string of the value, cast it to the type of the series, and add it to the series
-    void addString(const string& value) {
-
-        // Get the series type
-        const type_info& seriesType = type();
-
-        try {
-            if (seriesType == typeid(int)) {
-                add(stoi(value));
-            } else if (seriesType == typeid(long)) {
-                add(stol(value));
-            } else if (seriesType == typeid(double)) {
-                add(stod(value));
-            } else if (seriesType == typeid(string)) {
-                add(value);
-            } else if (seriesType == typeid(char)) {
-                add(value[0]);
-            } else {
-                throw runtime_error("Type mismatch error: Unable to add value to Series " + name + " (expected " + string(type().name()) + ", received string)");
-            }
-            
-        } catch (const invalid_argument& e) {
-            throw runtime_error("Invalid argument error: Unable to add value to Series " + name + " (expected " + string(type().name()) + ", received " + value);
-        } catch (const out_of_range& e) {
-            throw runtime_error("Out of range error: Unable to add value to Series " + name + " (expected " + string(type().name()) + ", received " + value);
-        }
-    }
-
     /**
      * @brief Returns the type information of the series.
      * 
