@@ -34,13 +34,22 @@ public:
     //  * 
     //  * @param names An initializer list of column names.
     //  */
-    // DataFrame(initializer_list<string> names) : columnNames(names) {}
 
     // Default constructor
     DataFrame() = default;
 
     // Constructor that takes an initializer list of column names
     DataFrame(initializer_list<string> names) {
+        for (const auto& name : names) {
+            // Optionally initialize each column to a new Series of a default type
+            // e.g., Series<int> if you want to specify a default type
+            columns[name] = make_shared<Series<int>>(name);
+            columnNames.push_back(name);
+        }
+    }
+
+    // Constructor for initializing with a vector of column names
+    DataFrame(const vector<string>& names) {
         for (const auto& name : names) {
             // Optionally initialize each column to a new Series of a default type
             // e.g., Series<int> if you want to specify a default type
@@ -257,6 +266,77 @@ public:
         return false; // If type is not handled, return false
     }
 
+    /**
+     * @brief Merge two DataFrames.
+     * 
+     * This method merges two DataFrames based on a common column.
+     * The method assumes that the column is ordered in both DataFrames.
+     * This method results in a new DataFrame with the merged data ordered by the common column.
+     * 
+     * @param df1 The first DataFrame to be merged.
+     * @param df2 The second DataFrame to be merged.
+     * @param columnName The name of the column to merge on.
+     * @return The merged DataFrame.
+     * @throws std::runtime_error If the column is not found in both DataFrames.
+     * @throws std::runtime_error If the column types do not match.
+     */
+    static DataFrame mergeOrdered(const DataFrame& df1, const DataFrame& df2, const string& columnName) {
+        DataFrame result;
+        // Check if the column exists in both DataFrames
+        if (df1.columns.find(columnName) == df1.columns.end() || df2.columns.find(columnName) == df2.columns.end()) {
+            throw runtime_error("Column not found in both DataFrames.");
+        }
+
+        // Check if the column types match
+        if (df1.columns.at(columnName)->type() != df2.columns.at(columnName)->type()) {
+            throw runtime_error("Column types do not match.");
+        }
+
+        // Instantiate a new dataframe to store the merged result (assuming that both dataframes have the same column names)
+        DataFrame* merged = new DataFrame();
+        merged->deepCopy(df1, false); // Copy the column names/types but not the data
+
+        // Assuming that both dataframe has the column ordered, just merge the data
+        size_t i = 0, j = 0;
+        while (i < df1.rowCount && j < df2.rowCount) {
+            try {
+                // Cast the values to long for comparison
+                long val1 = static_cast<long>(stol(df1.columns.at(columnName)->getStringAtIndex(i)));
+                long val2 = static_cast<long>(stol(df2.columns.at(columnName)->getStringAtIndex(j)));
+                
+                if (val1 <= val2) {
+                    // Clone the value of each column in the row
+                    for (const auto& colName : df1.columnNames) merged->cloneValue(colName, df1, i, colName);
+                    i++;
+                } else {
+                    // Clone the value of each column in the row
+                    for (const auto& colName : df2.columnNames) merged->cloneValue(colName, df2, j, colName);
+                    j++;
+                }
+            } catch (const bad_any_cast& e) {
+                cout << e.what() << endl;
+                throw runtime_error("Type mismatch error: Unable to cast value to long: ");
+            }
+        }
+
+        // Append remaining rows from either dataframe
+        while (i < df1.rowCount) {
+            // Clone the value of each column in the row
+            for (const auto& colName : df1.columnNames) merged->cloneValue(colName, df1, i, colName);
+            i++;
+        }
+
+        while (j < df2.rowCount) {
+            // Clone the value of each column in the row
+            for (const auto& colName : df2.columnNames) merged->cloneValue(colName, df2, j, colName);
+            j++;
+        }
+
+        // Update the row count
+        merged->rowCount = df1.rowCount + df2.rowCount;
+
+        return *merged;
+    }
 
     /**
      * @brief Print the DataFrame.
@@ -278,6 +358,12 @@ public:
     void print(size_t startIndex, size_t endIndex) const {
         if (endIndex >= rowCount) endIndex = rowCount - 1; // Ensure endIndex is within bounds
 
+        // Check if the dataframe is empty
+        if (rowCount == 0 || endIndex < startIndex) {
+            cout << "DataFrame is empty." << endl;
+            return;
+        }
+
         // Print column headers
         for (const auto& columnName : columnNames) {
             cout << columnName << "\t";
@@ -291,6 +377,58 @@ public:
                 cout << columns.at(columnName)->getStringAtIndex(rowIndex) << "\t";
             }
             cout << endl;
+        }
+    }
+
+    /**
+     * @brief Get a pointer to a column in the DataFrame.
+     * 
+     * This method returns a shared pointer to a column in the DataFrame based on the column name.
+     * 
+     * @param name The name of the column to be retrieved.
+     * @return A shared pointer to the column.
+     * @throws std::runtime_error If the column is not found.
+     */
+    std::shared_ptr<ISeries> getColumnPtr(const std::string& name) const {
+        auto it = columns.find(name);
+        if (it == columns.end()) throw std::runtime_error("Column not found");
+        return it->second;
+    }
+
+    /**
+     * @brief Clone the value of a column in a row.
+     * 
+     * This method clones the value of a column in a row from another DataFrame into this DataFrame.
+     * 
+     * @param srcName The name of the column in the source DataFrame.
+     * @param srcDf The source DataFrame.
+     * @param index The index of the row in the source DataFrame.
+     * @param targetName The name of the column in this DataFrame.
+     */
+    void cloneValue(const std::string& srcName, const DataFrame& srcDf, size_t index, const std::string& targetName) {
+        auto targetSeries = getColumnPtr(targetName);
+        auto srcSeries = srcDf.getColumnPtr(srcName);
+        targetSeries->addFromSeries(srcSeries.get(), index);
+    }
+
+    /**
+     * @brief Deep copy the contents of another DataFrame.
+     * 
+     * This method deep copies the contents of another DataFrame into this DataFrame.
+     * 
+     * @param other The DataFrame to be copied.
+     * @param copyData A flag to indicate whether to copy the data as well.
+     */
+    void deepCopy(const DataFrame& other, bool copyData = true) {
+        columnNames = other.columnNames; // Copy column names
+        columns.clear(); // Clear existing columns if any
+
+        if (copyData) rowCount = other.rowCount; // Copy the row count
+        else rowCount = 0;
+
+        for (const auto& name : columnNames) {
+            columns[name] = other.columns.at(name)->clone();
+            if (!copyData) columns[name]->clear();
         }
     }
 
@@ -330,6 +468,34 @@ private:
         // Recursive call for the rest of the arguments
         if constexpr (sizeof...(rest) > 0) {
             addRowImpl(index + 1, rest...);
+        }
+    }
+
+    // function that do the same job as addRowImpl but for one value to one column
+    // remeber to create the appropriate Series instance
+    template<typename T>
+    void addValueImpl(size_t index, T first) {
+        if (index >= columnNames.size()) {
+            throw runtime_error("Index out of bounds.");
+        }
+
+        // If it's a any type, convert to string
+        if (typeid(T) == typeid(std::any)) {
+            columns[columnNames[index]]->add(std::any_cast<std::string>(first));
+            return;
+        }
+
+        // For the first row, create the appropriate Series instance
+        if (rowCount == 0) {
+            columns[columnNames[index]] = make_shared<Series<T>>(columnNames[index]);
+        }
+
+        // Add the value to the appropriate Series
+        try {
+            auto& series = columns[columnNames[index]];
+            series->add(first);
+        } catch (const bad_any_cast& e) {
+            throw runtime_error("Type mismatch error: Unable to add value to Series.");
         }
     }
 };

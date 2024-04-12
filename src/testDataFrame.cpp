@@ -75,6 +75,77 @@ int main() {
         cout << endl;
         df.addRow(8, 100.0, string("Off"), 'A', 0);
 
+        // Create two DataFrames with same column names
+        DataFrame df1({"timestamp", "sensor1", "sensor2", "origin"});
+        DataFrame df2({"timestamp", "sensor1", "sensor2", "origin"});
+
+        // Adding rows to df1
+        df1.addRow(1, 10, 100.0, string("DataFrame1"));
+        df1.addRow(3, 11, 110.0, string("DataFrame1"));
+        df1.addRow(5, 12, 120.0, string("DataFrame1"));
+        df1.addRow(7, 13, 130.0, string("DataFrame1"));
+        df1.addRow(9, 14, 140.0, string("DataFrame1"));
+        df1.print();
+        cout << endl;
+
+        // Adding rows to df2
+        df2.addRow(2, 15, 150.0, string("Dataframe2"));
+        df2.addRow(4, 16, 160.0, string("Dataframe2"));
+        df2.addRow(6, 17, 170.0, string("Dataframe2"));
+        df2.addRow(8, 18, 180.0, string("Dataframe2"));
+        df2.addRow(10, 19, 190.0, string("Dataframe2"));
+        df2.addRow(12, 20, 200.0, string("Dataframe2"));
+        df2.addRow(14, 21, 210.0, string("Dataframe2"));
+        df2.addRow(16, 22, 220.0, string("Dataframe2"));
+        df2.addRow(18, 23, 230.0, string("Dataframe2"));
+        df2.addRow(20, 24, 240.0, string("Dataframe2"));
+        df2.print();
+        cout << endl;
+
+        // Merge the DataFrames ordered by the "timestamp" column
+        DataFrame merged = DataFrame::mergeOrdered(df1, df2, "timestamp");
+
+        // Print the merged DataFrame
+        merged.print();
+        cout << endl;
+
+        // Test the deep copy method
+        cout << "Testing the deep copy method" << endl;
+        DataFrame dfCopy;
+        dfCopy.deepCopy(df);
+
+        cout << "Original DataFrame" << endl;
+        df.print();
+        cout << "Copy DataFrame" << endl;
+        dfCopy.print();
+
+        cout << "Let's change both DataFrames" << endl;
+        df.addRow(100, 100.0, string("On"), 'A', 1);
+        dfCopy.addRow(200, 200.0, string("Off"), 'B', 2);
+
+        cout << "Original DataFrame" << endl;
+        df.print();
+        cout << "Copy DataFrame" << endl;
+        dfCopy.print();
+
+        cout << endl;
+
+        cout << "Test a copy without keeping the data" << endl;
+        DataFrame dfCopy2;
+        dfCopy2.deepCopy(df, false);
+        dfCopy2.printColumnTypes();
+        cout << "Original DataFrame" << endl;
+        df.print();
+        cout << "Copy DataFrame" << endl;
+        dfCopy2.print();
+
+        cout << "Let's add a row to the copy DataFrame" << endl;
+        dfCopy2.addRow(300, 300.0, string("On"), 'C', 3);
+        cout << "Original DataFrame" << endl;
+        df.print();
+        cout << "Copy DataFrame" << endl;
+        dfCopy2.print();
+
     } catch (const std::exception& e) {
         std::cerr << "Exception occurred: " << e.what() << std::endl;
     }

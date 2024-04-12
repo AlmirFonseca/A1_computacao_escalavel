@@ -13,6 +13,35 @@
 
 using namespace std;
 
+/**
+ * Converts a value to a string representation.
+ * 
+ * This function converts the given value to a string representation. If the value is of type string or const char*, it is directly converted to a string. Otherwise, it is converted using the to_string function.
+ * 
+ * @tparam T The type of the value to be converted.
+ * @param value The value to be converted.
+ * @return The string representation of the value.
+ */
+template<typename T>
+std::string convertToString(const T& value) {
+    if constexpr (std::is_same_v<T, std::string>) {
+        return value; // Directly return std::string values
+    } else if constexpr (std::is_same_v<T, const char*> || std::is_same_v<T, char*>) {
+        return std::string(value); // Convert C-style string to std::string
+    } else if constexpr (std::is_same_v<T, char>) {
+        // Handle char type specifically to avoid treating it as an integer
+        return std::string(1, value);
+    } else if constexpr (std::is_arithmetic_v<T>) {
+        return std::to_string(value); // Use std::to_string for numeric types
+    } else {
+        // Fallback for types not directly supported by std::to_string
+        // This requires a way to convert custom types to std::string
+        static_assert(std::is_arithmetic_v<T> || std::is_same_v<T, char>, "Type not supported for conversion to std::string.");
+        return ""; // Placeholder return for unsupported types to satisfy all control paths
+    }
+}
+
+
 // Interface for Series
 /**
  * @brief Interface for a series data structure.
@@ -74,36 +103,27 @@ public:
      * @return The data at the specified index in the series.
      */
     virtual any getDataAtIndex(size_t index) const = 0;
+
+    /**
+     * @brief Adds a value to the series from another series.
+     * 
+     * @param other The series from which the value is to be added.
+     * @param index The index of the value to be added.
+     */
+    virtual void addFromSeries(const ISeries* other, size_t index) = 0;
+
+    /**
+     * @brief Clones the series.
+     * 
+     * @return A shared pointer to the cloned series.
+     */
+    virtual std::shared_ptr<ISeries> clone() const = 0;
+
+    /**
+     * @brief Clears the series data.
+     */
+    virtual void clear() = 0;
 };
-
-/**
- * Converts a value to a string representation.
- * 
- * This function converts the given value to a string representation. If the value is of type string or const char*, it is directly converted to a string. Otherwise, it is converted using the to_string function.
- * 
- * @tparam T The type of the value to be converted.
- * @param value The value to be converted.
- * @return The string representation of the value.
- */
-template<typename T>
-std::string convertToString(const T& value) {
-    if constexpr (std::is_same_v<T, std::string>) {
-        return value; // Directly return std::string values
-    } else if constexpr (std::is_same_v<T, const char*> || std::is_same_v<T, char*>) {
-        return std::string(value); // Convert C-style string to std::string
-    } else if constexpr (std::is_same_v<T, char>) {
-        // Handle char type specifically to avoid treating it as an integer
-        return std::string(1, value);
-    } else if constexpr (std::is_arithmetic_v<T>) {
-        return std::to_string(value); // Use std::to_string for numeric types
-    } else {
-        // Fallback for types not directly supported by std::to_string
-        // This requires a way to convert custom types to std::string
-        static_assert(std::is_arithmetic_v<T> || std::is_same_v<T, char>, "Type not supported for conversion to std::string.");
-        return ""; // Placeholder return for unsupported types to satisfy all control paths
-    }
-}
-
 
 
 /**
@@ -144,6 +164,34 @@ public:
         } catch (const bad_any_cast&) {
             // Handling the case where the type does not match.
             throw runtime_error("Type mismatch error: Unable to add value to Series " + name + " (expected " + string(type().name()) + ", received " + value.type().name() + ")");
+        }
+    }
+
+    // Function to receive a string of the value, cast it to the type of the series, and add it to the series
+    void addString(const string& value) {
+
+        // Get the series type
+        const type_info& seriesType = type();
+
+        try {
+            if (seriesType == typeid(int)) {
+                add(stoi(value));
+            } else if (seriesType == typeid(long)) {
+                add(stol(value));
+            } else if (seriesType == typeid(double)) {
+                add(stod(value));
+            } else if (seriesType == typeid(string)) {
+                add(value);
+            } else if (seriesType == typeid(char)) {
+                add(value[0]);
+            } else {
+                throw runtime_error("Type mismatch error: Unable to add value to Series " + name + " (expected " + string(type().name()) + ", received string)");
+            }
+            
+        } catch (const invalid_argument& e) {
+            throw runtime_error("Invalid argument error: Unable to add value to Series " + name + " (expected " + string(type().name()) + ", received " + value);
+        } catch (const out_of_range& e) {
+            throw runtime_error("Out of range error: Unable to add value to Series " + name + " (expected " + string(type().name()) + ", received " + value);
         }
     }
 
@@ -275,6 +323,44 @@ public:
             cout << any_cast<const T&>(value) << " "; // This requires that T is stream-insertable
         }
         cout << endl;
+    }
+
+    /**
+     * @brief Adds a value to the series from another series.
+     * 
+     * This function adds a value to the series from another series at the specified index.
+     * If the type of the other series does not match the type of the series, a
+     * runtime_error is thrown.
+     * 
+     * @param other The series from which the value is to be added.
+     * @param index The index of the value to be added.
+     * @throws runtime_error if the type of the other series does not match the type of the series.
+     */
+    void addFromSeries(const ISeries* other, size_t index) override {
+        const Series<T>* casted = dynamic_cast<const Series<T>*>(other);
+        if (casted) {
+            add(casted->getData()[index]);
+        } else {
+            throw std::runtime_error("Type mismatch between series");
+        }
+    }
+
+    /**
+     * @brief Clones the series.
+     * 
+     * @return A shared pointer to the cloned series.
+     */
+    std::shared_ptr<ISeries> clone() const override {
+        auto clonedSeries = std::make_shared<Series<T>>(name);
+        clonedSeries->data = data; // Deep copy the data
+        return clonedSeries;
+    }
+
+    /**
+     * @brief Clears the series data.
+     */
+    void clear() override {
+        data.clear();
     }
 };
 
