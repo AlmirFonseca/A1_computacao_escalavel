@@ -9,6 +9,8 @@ from collections import deque
 import threading
 from graph_user_flow import *
 import time
+import tempfile
+
 
 
 @dataclass
@@ -46,11 +48,17 @@ class Simulation:
         # Delete the folder where they are
         # add a constant to the class with the file names
 
+        self.folder_name = "mock_files"
         self.files_names = ["log_simulation.txt", "users.csv", "products.csv", "stock.csv", "purchase_orders.csv"]
-        # delete the files if they exist
-        for file_name in self.files_names:
-            if os.path.exists(file_name):
-                os.remove(file_name)
+        self.directory_file = [f"{self.folder_name}/{file_name}" for file_name in self.files_names]
+
+        # ACTIONS ON INIT
+         
+        # if the folder exists, delete its contents
+        if os.path.exists(self.folder_name):
+            self.remove_folder_contents(self.folder_name)
+        else:
+            os.makedirs(self.folder_name)
 
         # generate users at the start of the simulation
         for _ in range(self.params.num_initial_users):
@@ -65,9 +73,41 @@ class Simulation:
             self.__generate_stock(product, self.params.qtd_stock_initial)
 
         # TODO: generate initial report with the users, products and stock and sleep for cycle_duration
+        self.__report_initial_cycle()
+    
+    def __report_initial_cycle(self):
+        # report users, products and stocks created, creating the new csvs
+        with open(self.directory_file[1], 'w') as file:
+            writer = csv.writer(file, delimiter=';', lineterminator='\n')
+            content = [[user.id, user.name, user.email, user.address, user.registration_date, user.birth_date] for user in self.new_users]
+            writer.writerows(content)
+        self.new_users = []
+        
+        with open(self.directory_file[2], 'w') as file:
+            writer = csv.writer(file, delimiter=';', lineterminator='\n')
+            content = [[product.id, product.name, product.image, product.description, product.price] for product in self.new_products]
+            writer.writerows(content)
+        self.new_products = []
+
+        with open(self.directory_file[3], 'w') as file:
+            writer = csv.writer(file, delimiter=';', lineterminator='\n')
+            content = [[product_id, quantity] for product_id, quantity in self.stock.items()]
+            writer.writerows(content)
+        self.new_products = []
+
+
+    def remove_folder_contents(self, folder_path):
+        for root, _, files in os.walk(folder_path):
+            for file in files:
+                file_path = os.path.join(root, file)
+                os.remove(file_path)     
     
     def run(self):
         while True:
+            
+            sleep(self.params.cycle_duration)
+            self.cycle += 1
+
             self.__generate_users()
             self.__generate_products()
             self.__generate_stock_for_new_products()
@@ -79,8 +119,7 @@ class Simulation:
             self.__update_cycle_stock()
             self.__print_status()
             self.__report_cycle()
-            sleep(self.params.cycle_duration)
-            self.cycle += 1
+           
     
     
     def __select_waiting_users(self):
@@ -229,51 +268,46 @@ class Simulation:
             return
 
     def __report_cycle(self):
-        # add self.log_flow to the log file as csv
-        with open(self.files_names[0], "a") as f:
-            # write at once all the log flow (no csv writerow method, because the log_flow is already a list of strings)
-            f.writelines(self.log_flow)
+
+        self.files_with_cycle = [f"{self.folder_name}/{self.cycle}{file_name}" for file_name in self.files_names]
+
+        if self.log_flow:
+            with open(self.files_with_cycle[0], "a") as f:
+                    f.writelines(self.log_flow)
         self.log_flow = []
 
         # update (create if not exists) the new_users in a .csv file, keeping existent users
         if self.new_users:
-            with open(self.files_names[1], 'a') as file:
+            with open(self.directory_file[1], 'a') as file:
                 writer = csv.writer(file, delimiter=';', lineterminator='\n')
-                # write at once all the new users
                 content = [[user.id, user.name, user.email, user.address, user.registration_date, user.birth_date] for user in self.new_users]
                 writer.writerows(content)
         self.new_users = []
 
         # update (create if not exists) the new_products in a .csv file, keeping existent products
         if self.new_products:
-            with open(self.files_names[2], 'a') as file:
+            with open(self.directory_file[2], 'a') as file:
                 writer = csv.writer(file, delimiter=';', lineterminator='\n')
-                # write at once all the products
                 content = [[product.id, product.name, product.image, product.description, product.price] for product in self.new_products]
                 writer.writerows(content)
         self.new_products = []
 
         # update (create if not exists) the new_stock_decreases in a .csv file, keeping existent stock
-        # TODO: create a database to update the stock
-        # meanwhile, work with csv files
         if self.new_stock_decreases:
-            # delete the file content and write the new stock
-            with open(self.files_names[3], 'w') as file:
+        # TODO: Efficient approach with temporary file 
+        # Less efficient but simpler approach (overwrite entire file)
+            with open(self.directory_file[3], 'w', newline='') as file:
                 writer = csv.writer(file, delimiter=';', lineterminator='\n')
-                # writ at once all the stock
                 content = [[product_id, quantity] for product_id, quantity in self.stock.items()]
                 writer.writerows(content)
-
         self.new_stock_decreases = {}
 
-        # update (create if not exists) the new_purchase_orders in a .csv file, keeping existent purchase orders
         if self.new_purchase_orders:
-            with open(self.files_names[4], 'a') as file:
+            with open(self.directory_file[4], 'a') as file:
                 writer = csv.writer(file, delimiter=';', lineterminator='\n')
-                # write at once all the purchase orders
                 content = [[purchase_order.user_id, purchase_order.product_id, purchase_order.quantity, purchase_order.creation_date, purchase_order.payment_date, purchase_order.delivery_date] for purchase_order in self.new_purchase_orders]
                 writer.writerows(content)
 
         self.new_purchase_orders = []
 
-        
+
