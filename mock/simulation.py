@@ -42,6 +42,7 @@ class Simulation:
         self.logged_users = deque()
         self.log_flow = []
 
+
         self.G = G
 
         # TODO: create one file per cycle
@@ -153,6 +154,8 @@ class Simulation:
     def __user_flow(self, user):
         # let the user perform actions on the system until it reaches the EXIT node
         current_node = LOGIN
+        self.__add_message_to_log(f"-Audit-{user}- at {LOGIN}.\n")
+
         # TO-DO: Make it thread-safe
         current_product_list = []
         current_product = None
@@ -187,21 +190,24 @@ class Simulation:
     def get_timestamp_string(self):
         """Returns a high-resolution timestamp string."""
         return str(time.time_ns())  # Use nanoseconds for best resolution
-
+    
+    def __add_message_to_log(self, message):
+        cur_time = self.get_timestamp_string()
+        self.log_flow.append(cur_time+message)
 
     def __home(self, user):
         # TO-DO: make it thread-safe
-        self.log_flow.append(f"{self.get_timestamp_string()}-User-{user}- is {HOME}.\n")
+        self.__add_message_to_log(f"-User-{user}- is {STIMUL_SCROLLING} at {HOME}.\n")
 
     def __view_product(self, user, product):
         # choose a random product to view
-        self.log_flow.append(f"{self.get_timestamp_string()}-User-{user}- is {VIEW_PRODUCT} {product}.\n")
+        self.__add_message_to_log(f"-User-{user}- is {STIMUL_ZOOM} at {VIEW_PRODUCT} {product}.\n")
 
     def __cart(self, user, product):
-        self.log_flow.append(f"{self.get_timestamp_string()}-User-{user}- is {CART} with {product}.\n")
+        self.__add_message_to_log(f"-User-{user}- is {STIMUL_CLICK} at {CART} with {product}.\n")
 
     def __checkout(self, user, product_list):
-        self.log_flow.append(f"{self.get_timestamp_string()}-User-{user}- is {CHECKOUT} with {product_list}.\n")
+        self.__add_message_to_log(f"-User-{user}- is {STIMUL_CLICK} at {CHECKOUT} with {product_list}.\n")
         # create a order for the user
         
         def add_purchase_order():
@@ -211,14 +217,16 @@ class Simulation:
             for product, quantity in dictionary_products.items():
                 # TO-DO: make it thread-safe, AND do not allow to create a purchase order if the stock is not enough
                 purchase_order = self.__generate_purchase_order(user, product, quantity)
-                self.log_flow.append(f"{self.get_timestamp_string()}-Audit-{user}- created a purchase order for Product: {purchase_order.product_id} Quantity: {purchase_order.quantity}.\n")
+                mesage = f"-Audit-{user}- created a purchase order for Product: {purchase_order.product_id} Quantity: {purchase_order.quantity}.\n"
+                self.__add_message_to_log(mesage)
                 # update the stock of the products
                 self.__decrease_stock(product, quantity)
-
         add_purchase_order()
             
     def __exit(self, user):
-        self.log_flow.append(f"{self.get_timestamp_string()}-User-{user}- is {EXIT}.\n")
+        self.__add_message_to_log(f"-User-{user}- is {STIMUL_CLICK} at {EXIT}.\n")
+        self.__add_message_to_log(f"-Audit-{user}- at {EXIT}.\n")
+
 
     def __generate_user(self):
         user = models.generate_user()
