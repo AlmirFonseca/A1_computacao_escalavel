@@ -2,16 +2,13 @@ import os
 from dataclasses import dataclass
 from random import choice, randint, random, choices, shuffle
 from time import sleep, time
-from typing import Optional
 import models
 import csv
 from collections import deque
 import threading
 from graph_user_flow import *
 import time
-import tempfile
-
-
+import threading
 
 @dataclass
 class SimulationParams:
@@ -40,22 +37,18 @@ class Simulation:
         self.new_purchase_orders = []
         self.waiting_users = deque()
         self.logged_users = deque()
+        self.depuration = []
         self.log_flow = []
 
 
         self.G = G
 
-        # TODO: create one file per cycle
-        # Delete the folder where they are
-        # add a constant to the class with the file names
-
         self.folder_name = "mock_files"
         self.files_names = ["log_simulation.txt", "users.csv", "products.csv", "stock.csv", "purchase_orders.csv"]
         self.directory_file = [f"{self.folder_name}/{file_name}" for file_name in self.files_names]
 
-        # ACTIONS ON INIT
          
-        # if the folder exists, delete its contents
+        # if the folder exists, elete its contents
         if os.path.exists(self.folder_name):
             self.remove_folder_contents(self.folder_name)
         else:
@@ -73,7 +66,6 @@ class Simulation:
         for product in self.products:
             self.__generate_stock(product, self.params.qtd_stock_initial)
 
-        # TODO: generate initial report with the users, products and stock and sleep for cycle_duration
         self.__report_initial_cycle()
     
     def __report_initial_cycle(self):
@@ -96,7 +88,6 @@ class Simulation:
             writer.writerows(content)
         self.new_products = []
 
-
     def remove_folder_contents(self, folder_path):
         for root, _, files in os.walk(folder_path):
             for file in files:
@@ -105,62 +96,71 @@ class Simulation:
     
     def run(self):
         while True:
-            
             sleep(self.params.cycle_duration)
             self.cycle += 1
 
+            # CONTA VERDE
             self.__generate_users()
             self.__generate_products()
             self.__generate_stock_for_new_products()
             
             # allow users to enter and perform actions on the system, if they are not yet loged
+            # DATACAT
             self.__select_waiting_users()
             self.__select_users_to_login()    
 
+            # CONTA VERDE
             self.__update_cycle_stock()
+
+            # DATACAT
+            self.__introduct_errors_for_log()
+
             self.__print_status()
             self.__report_cycle()
+
+            # break
            
-    
-    
+    def __introduct_errors_for_log(self):
+        if random() < 0.1:
+            node = choice(nodes)
+            message = f"-Error- at {node}.\n"
+            self.__add_message_to_log(message)
+        
     def __select_waiting_users(self):
-        # select max_simultaneus_users to enter the waiting queue
         for _ in range(self.params.max_simultaneus_users):
             self.waiting_users.append(choice(self.users))
 
     def __select_users_to_login(self):
-        # select users from the waiting queue to login
-        num_users = randint(0, len(self.waiting_users))
-        for _ in range(num_users):
-            user = self.waiting_users.popleft()
-            self.logged_users.append(user)
+        # print(f"waiting_users users: {self.waiting_users}")
 
-        # create a threead for each user to perform actions on the system (user_flow actions that ends with EXIT)
-        # apply __user_flow method to users in the logged_users queue
+        num_users = len(self.waiting_users)
+
+        # creating a thread for each user
         threads = []
-        for user in self.logged_users:
-            t = threading.Thread(target=self.__user_flow, args=(user,))
-            threads.append(t)
-            t.start()
+        for _ in self.waiting_users.copy():
+            user = self.waiting_users.popleft()
+            thread = threading.Thread(target=self.__user_flow, args=(user,))
+            threads.append(thread)
+            thread.start()
+        for thread in threads:
+            thread.join()
 
-        for t in threads:
-            t.join()
 
-        # remove users from the logged_users queue
-        self.logged_users.clear()
+                
 
-    
-            
     def __user_flow(self, user):
         # let the user perform actions on the system until it reaches the EXIT node
         current_node = LOGIN
-        self.__add_message_to_log(f"-Audit-{user}- at {LOGIN}.\n")
+        # print(f"User {user} is logging in.")
+        # random sleep
+        sleep(random())
+        message = f"-Audit-{user}- at {LOGIN}.\n"
+        self.__add_message_to_log(message)
+        cur_time = self.get_timestamp_string()
 
-        # TO-DO: Make it thread-safe
         current_product_list = []
         current_product = None
-
-
+        
 
         while current_node != EXIT:
             # select the next as the current node's successor, based on the probability of each neighbor in the edge
@@ -172,20 +172,28 @@ class Simulation:
 
             if next_node == HOME:
                 self.__home(user)
+                sleep(random()/10)
+
             elif next_node == VIEW_PRODUCT:
-                # TO DO: check if access to product is thread-safe
-                # show just products that are in stock
-                products_in_stock = [product for product in self.products if self.stock[product] > 0]
+                products_in_stock = [product for product in self.products.copy() if self.stock[product] > 0]
                 current_product = choice(products_in_stock)
                 self.__view_product(user, current_product)
+                sleep(random()/10)
+
             elif next_node == CART:
                 current_product_list.append(current_product)
                 self.__cart(user, current_product)
+                sleep(random()/10)
+
             elif next_node == CHECKOUT:
                 self.__checkout(user, current_product_list)
+                sleep(random()/10)
+
             current_node = next_node
-        # if user reached the EXIT node, log a message and remove it from the logged_users list
+        sleep(random()/10)
         self.__exit(user)
+        # print(f"User {user} is exiting.")
+        # self.logged_users.remove(user)
 
     def get_timestamp_string(self):
         """Returns a high-resolution timestamp string."""
@@ -193,29 +201,30 @@ class Simulation:
     
     def __add_message_to_log(self, message):
         cur_time = self.get_timestamp_string()
-        self.log_flow.append(cur_time+message)
+        self.log_flow.append(cur_time + message)
+        # print(cur_time + message, end="")
 
     def __home(self, user):
-        # TO-DO: make it thread-safe
-        self.__add_message_to_log(f"-User-{user}- is {STIMUL_SCROLLING} at {HOME}.\n")
+        msg = f"-User-{user}- is {STIMUL_SCROLLING} at {HOME}.\n"
+        self.__add_message_to_log(msg)
 
     def __view_product(self, user, product):
-        # choose a random product to view
-        self.__add_message_to_log(f"-User-{user}- is {STIMUL_ZOOM} at {VIEW_PRODUCT} {product}.\n")
+        msg = f"-User-{user}- is {STIMUL_ZOOM} at {VIEW_PRODUCT} {product}.\n"
+        self.__add_message_to_log(msg)
 
     def __cart(self, user, product):
-        self.__add_message_to_log(f"-User-{user}- is {STIMUL_CLICK} at {CART} with {product}.\n")
+        msg = f"-User-{user}- is {STIMUL_CLICK} at {CART} with {product}.\n"
+        self.__add_message_to_log(msg)
 
     def __checkout(self, user, product_list):
-        self.__add_message_to_log(f"-User-{user}- is {STIMUL_CLICK} at {CHECKOUT} with {product_list}.\n")
-        # create a order for the user
+        msg = f"-User-{user}- is {STIMUL_CLICK} at {CHECKOUT} with {product_list}.\n"
+        self.__add_message_to_log(msg)
         
         def add_purchase_order():
             dictionary_products = {}
             for product in product_list:
                 dictionary_products[product] = dictionary_products.get(product, 0) + 1
             for product, quantity in dictionary_products.items():
-                # TO-DO: make it thread-safe, AND do not allow to create a purchase order if the stock is not enough
                 purchase_order = self.__generate_purchase_order(user, product, quantity)
                 mesage = f"-Audit-{user}- created a purchase order for Product: {purchase_order.product_id} Quantity: {purchase_order.quantity}.\n"
                 self.__add_message_to_log(mesage)
@@ -224,8 +233,10 @@ class Simulation:
         add_purchase_order()
             
     def __exit(self, user):
-        self.__add_message_to_log(f"-User-{user}- is {STIMUL_CLICK} at {EXIT}.\n")
-        self.__add_message_to_log(f"-Audit-{user}- at {EXIT}.\n")
+        msg = f"-User-{user}- is {STIMUL_CLICK} at {EXIT}.\n"
+        self.__add_message_to_log(msg)
+        msg = f"-Audit-{user}- at {EXIT}.\n"
+        self.__add_message_to_log(msg)
 
 
     def __generate_user(self):
@@ -300,10 +311,8 @@ class Simulation:
                 writer.writerows(content)
         self.new_products = []
 
-        # update (create if not exists) the new_stock_decreases in a .csv file, keeping existent stock
         if self.new_stock_decreases:
         # TODO: Efficient approach with temporary file 
-        # Less efficient but simpler approach (overwrite entire file)
             with open(self.directory_file[3], 'w', newline='') as file:
                 writer = csv.writer(file, delimiter=';', lineterminator='\n')
                 content = [[product_id, quantity] for product_id, quantity in self.stock.items()]

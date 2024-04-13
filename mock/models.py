@@ -61,13 +61,10 @@ def generate_user():
     """Generates a User dataclass instance with unique data."""
     faker = FakerSingleton().get_faker()
     return User(
-        # create a fake user id, numeric, starting always with 1 and unique
         id=faker.unique.numerify(text="1########"),
         name=faker.name(),
         email=faker.email(),
-        # create a fake address, using faker.street, faker.cityt, etc
         address= f"{faker.street_address()}, {faker.city()}, {faker.state()}, {faker.zipcode()}, {faker.country()}",
-        # registration = current timestamp
         registration_date = str(time.time_ns()),
         birth_date=faker.date_of_birth(minimum_age=18, maximum_age=100).isoformat(),
     )
@@ -75,10 +72,8 @@ def generate_user():
 def generate_product():
     """Generates a Product dataclass instance with unique data."""
     faker = FakerSingleton().get_faker()
-    # faker.add_provider(faker_commerce.Provider)
 
     return Product(
-        # create a fake product id, numeric, starting always with 2 and unique
         id=faker.unique.numerify(text="2######"),
         name=faker.word(),
         image=faker.image_url(),
