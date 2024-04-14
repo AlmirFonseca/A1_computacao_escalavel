@@ -40,13 +40,16 @@ public:
         active = true;
         std::thread([this]() {
             while (active) {
-                std::this_thread::sleep_for(interval);
                 std::cout << "TimerTrigger activated!" << std::endl;
+                for (auto observer : observers) {
+                    observer->update(); // Notify all observers
+                }
+                std::this_thread::sleep_for(interval);
             }
         }).detach();
     }
 
-    // Overriding deactivate method
+
     void deactivate() override {
         active = false;
     }

@@ -38,6 +38,10 @@ public:
                 std::chrono::milliseconds interval = getRandomInterval();
                 std::this_thread::sleep_for(interval);
                 std::cout << "RequestTrigger activated!" << std::endl;
+                // Notify all observers
+                for (auto observer : observers) {
+                    observer->handleRequest();
+                }
             }
         }).detach();
     }
