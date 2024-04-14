@@ -40,6 +40,8 @@ class Simulation:
         self.depuration = []
         self.log_flow = []
         self.user_flow_report = []
+        self.lock_log_flow = threading.Lock()
+        self.lock_user_flow_report = threading.Lock()
 
         self.G = G
 
@@ -88,19 +90,19 @@ class Simulation:
     
     def __report_initial_cycle(self):
         # report users, products and stocks created, creating the new csvs
-        with open(self.csv_file_names[0], 'w') as file:
+        with open(self.csv_complete_path[0], 'w') as file:
             writer = csv.writer(file, delimiter=';', lineterminator='\n')
             content = [[user.id, user.name, user.email, user.address, user.registration_date, user.birth_date] for user in self.new_users]
             writer.writerows(content)
         self.new_users = []
         
-        with open(self.csv_file_names[1], 'w') as file:
+        with open(self.csv_complete_path[1], 'w') as file:
             writer = csv.writer(file, delimiter=';', lineterminator='\n')
             content = [[product.id, product.name, product.image, product.description, product.price] for product in self.new_products]
             writer.writerows(content)
         self.new_products = []
 
-        with open(self.csv_file_names[2], 'w') as file:
+        with open(self.csv_complete_path[2], 'w') as file:
             writer = csv.writer(file, delimiter=';', lineterminator='\n')
             content = [[product_id, quantity] for product_id, quantity in self.stock.items()]
             writer.writerows(content)
@@ -145,7 +147,7 @@ class Simulation:
     def __select_waiting_users(self):
         for _ in range(self.params.max_simultaneus_users):
             self.waiting_users.append(choice(self.users))
-
+        
     def __select_users_to_login(self):
         # print(f"waiting_users users: {self.waiting_users}")
 
