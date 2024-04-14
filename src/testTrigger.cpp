@@ -1,5 +1,5 @@
 #include <iostream>
-#include "TimeTrigger.hpp"
+#include "TimerTrigger.hpp"
 #include "RequestTrigger.hpp"
 using namespace std;
 
