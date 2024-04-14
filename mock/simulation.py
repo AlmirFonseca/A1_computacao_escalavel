@@ -56,7 +56,7 @@ class Simulation:
         self.request_file_name = "request"
         self.request_complete_path = f"{self.subfolder_http_request}/{self.request_file_name}"
 
-        # if the folder exists, elete its contents
+        # if the folder exists, delete its contents
         if os.path.exists(self.folder_name):
             self.remove_folder_contents(self.folder_name)
         else:
@@ -145,11 +145,15 @@ class Simulation:
             self.__add_message_to_log(message)
         
     def __select_waiting_users(self):
-        for _ in range(self.params.max_simultaneus_users):
-            self.waiting_users.append(choice(self.users))
+
+        num_users = min(self.params.max_simultaneus_users, len(self.users))
+        user_copy = self.users.copy()
+        shuffle(user_copy)
+        for i in range(num_users):
+            self.waiting_users.append(user_copy[i])
+
         
     def __select_users_to_login(self):
-        # print(f"waiting_users users: {self.waiting_users}")
 
         num_users = len(self.waiting_users)
 
@@ -213,11 +217,15 @@ class Simulation:
     
     def __add_message_to_log(self, message):
         cur_time = self.get_timestamp_string()
-        self.log_flow.append(cur_time + message)
+        with self.lock_log_flow:
+            self.log_flow.append(cur_time + message)
 
     def __add_message_to_user_flow_report(self, message):
+
         cur_time = self.get_timestamp_string()
-        self.user_flow_report.append(cur_time + message)
+        # add lock 
+        with self.lock_user_flow_report:
+            self.user_flow_report.append(cur_time + message)
 
     def __home(self, user):
         msg = f"-User-{user}- is {STIMUL_SCROLLING} at {HOME}.\n"
@@ -358,7 +366,3 @@ class Simulation:
                 writer.writerows(content)
 
         self.new_purchase_orders = []
-
-        # 
-
-

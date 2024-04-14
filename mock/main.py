@@ -7,7 +7,7 @@ if __name__ == "__main__":
     print("Starting simulation...")
 
     params = simulation.SimulationParams(
-        cycle_duration=2,
+        cycle_duration=0.1,
         num_initial_users=50,
         num_initial_products=2,
         qtd_stock_initial=100,
