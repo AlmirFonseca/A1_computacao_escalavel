@@ -16,7 +16,7 @@ if __name__ == "__main__":
 
     sim = simulation.Simulation(params)
 
-
+    
     sim.run()
 
     print("Simulation finished.")
