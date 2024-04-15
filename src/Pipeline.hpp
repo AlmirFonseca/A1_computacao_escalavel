@@ -1,7 +1,10 @@
 #include <iostream>
 #include <vector>
 #include <chrono>
+#include <filesystem>
 #include "Observer.hpp"
+
+namespace fs = std::filesystem;
 
 // createe pipeline class inheriting from observer
 class Pipeline : public Observer {
@@ -45,7 +48,7 @@ public:
     ~Pipeline() {
         std::cout << "Pipeline destroyed!" << std::endl;
     }
-
+    
     // Interface for notification (update) from triggers
     void update() override {
         readCSV();
