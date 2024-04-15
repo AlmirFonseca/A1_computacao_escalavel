@@ -94,6 +94,17 @@ public:
         rowCount++;
     }
 
+    // Add a single value to a column
+    template<typename T>
+    void addSingleValue(T value, int columnIndex) {
+        addValueImpl(columnIndex, value);
+        rowCount++;
+    }
+
+    void increaseRowCount() {
+        rowCount++;
+    }
+
     /**
      * @brief Get the number of rows in the DataFrame.
      * 
