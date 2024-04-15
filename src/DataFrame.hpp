@@ -500,6 +500,24 @@ public:
             throw runtime_error("Type mismatch error: Unable to add value to Series.");
         }
     }
+
+    // function that return the value of a row and column by their index
+    string getValueAt(size_t rowIndex, size_t columnIndex) {
+        if (rowIndex >= rowCount || columnIndex >= columnNames.size()) {
+            throw runtime_error("Index out of bounds.");
+        }
+
+        return columns[columnNames[columnIndex]]->getStringAtIndex(rowIndex);
+    }
+
+    // function that return the value name of a column by index
+    string getColumnName(size_t columnIndex) {
+        if (columnIndex >= columnNames.size()) {
+            throw runtime_error("Index out of bounds.");
+        }
+
+        return columnNames[columnIndex];
+    }
 };
 
 #endif // DATAFRAME_HPP
