@@ -17,6 +17,26 @@ private:
         std::cout << "Reading data from HTTP request..." << std::endl;
     }
 
+    std::vector<std::string> processedFiles;
+    
+    // Function to monitor the folders and process new files
+    void monitorFolders(const std::string& folderPath) {
+        for (const auto& entry : fs::recursive_directory_iterator(folderPath)) {
+            if (fs::is_regular_file(entry.path())) {
+                std::string filePath = entry.path().string();
+                if (std::find(processedFiles.begin(), processedFiles.end(), filePath) == processedFiles.end()) {
+                    // File hasn't been processed yet
+                    if (filePath.find("/csv/") != std::string::npos) {
+                        readCSV(filePath);
+                    } else if (filePath.find("/request/") != std::string::npos) {
+                        readHTTP(filePath);
+                    }
+                    processedFiles.push_back(filePath);
+                }
+            }
+        }
+    }
+
 public:
     Pipeline() {
         std::cout << "Pipeline created!" << std::endl;
