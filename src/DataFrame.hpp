@@ -87,17 +87,8 @@ public:
             throw runtime_error("Number of values does not match number of columns.");
         }
 
-        // Check if the type of each value matches the type of the corresponding column
-        
         // Call the recursive function to add each value to the appropriate column
         addRowImpl(0, args...);
-        rowCount++;
-    }
-
-    // Add a single value to a column
-    template<typename T>
-    void addSingleValue(T value, int columnIndex) {
-        addValueImpl(columnIndex, value);
         rowCount++;
     }
 
@@ -443,7 +434,7 @@ public:
         }
     }
 
-private:
+public:
     /**
      * @brief Recursive template function to handle each column in the row.
      * 
@@ -485,7 +476,7 @@ private:
     // function that do the same job as addRowImpl but for one value to one column
     // remeber to create the appropriate Series instance
     template<typename T>
-    void addValueImpl(size_t index, T first) {
+    void addColumnValue(size_t index, T first) {
         if (index >= columnNames.size()) {
             throw runtime_error("Index out of bounds.");
         }

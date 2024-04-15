@@ -1,5 +1,6 @@
 #include "DataFrame.hpp"
 #include <iostream>
+#include <vector>
 
 int main() {
     try {
@@ -145,6 +146,20 @@ int main() {
         df.print();
         cout << "Copy DataFrame" << endl;
         dfCopy2.print();
+
+        vector<string> columnNames = {"ID", "Name", "Score"};
+
+        DataFrame emptyDataframe = DataFrame(columnNames);
+
+        emptyDataframe.printColumnTypes();
+
+        emptyDataframe.addColumnValue(0, 4);
+        emptyDataframe.addColumnValue(1, "Diana");
+        emptyDataframe.addColumnValue(2, 100.0);
+        emptyDataframe.increaseRowCount();
+
+        emptyDataframe.print();
+        emptyDataframe.printColumnTypes();
 
     } catch (const std::exception& e) {
         std::cerr << "Exception occurred: " << e.what() << std::endl;
