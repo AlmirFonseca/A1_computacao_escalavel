@@ -92,21 +92,32 @@ class Simulation:
         # report users, products and stocks created, creating the new csvs
         with open(self.csv_complete_path[0], 'w') as file:
             writer = csv.writer(file, delimiter=';', lineterminator='\n')
+            first_line = ["id", "name", "email", "address", "registration_date", "birth_date"]
+            writer.writerow(first_line)
             content = [[user.id, user.name, user.email, user.address, user.registration_date, user.birth_date] for user in self.new_users]
             writer.writerows(content)
         self.new_users = []
         
         with open(self.csv_complete_path[1], 'w') as file:
             writer = csv.writer(file, delimiter=';', lineterminator='\n')
+            first_line = ["id", "name", "image", "description", "price"]
+            writer.writerow(first_line)
             content = [[product.id, product.name, product.image, product.description, product.price] for product in self.new_products]
             writer.writerows(content)
         self.new_products = []
 
         with open(self.csv_complete_path[2], 'w') as file:
             writer = csv.writer(file, delimiter=';', lineterminator='\n')
+            first_line = ["id_product", "quantity"]
+            writer.writerow(first_line)
             content = [[product_id, quantity] for product_id, quantity in self.stock.items()]
             writer.writerows(content)
         self.new_products = []
+
+        with open(self.csv_complete_path[3], 'w') as file:
+            writer = csv.writer(file, delimiter=';', lineterminator='\n')
+            first_line = ["user_id", "product_id", "quantity", "creation_date", "payment_date", "delivery_date"]
+            writer.writerow(first_line)
 
     def remove_folder_contents(self, folder_path):
         for root, _, files in os.walk(folder_path):
@@ -139,10 +150,9 @@ class Simulation:
             self.__report_cycle()
            
     def __introduct_errors_for_log(self):
-        if random() < 0.1:
-            node = choice(nodes)
-            message = f"-Error- at {node}.\n"
-            self.__add_message_to_log(message)
+        node = choice(nodes)
+        message = f";Error;{node}.\n"
+        self.__add_message_to_log(message)
         
     def __select_waiting_users(self):
 
@@ -173,7 +183,7 @@ class Simulation:
         # let the user perform actions on the system until it reaches the EXIT node
         current_node = LOGIN
         sleep(random()/10)
-        message = f"-Audit-{user}- at {LOGIN}.\n"
+        message = f";Audit;{user};{LOGIN}\n"
         self.__add_message_to_log(message)
 
         current_product_list = []
@@ -209,7 +219,6 @@ class Simulation:
             current_node = next_node
         sleep(random()/10)
         self.__exit(user)
-        # self.logged_users.remove(user)
 
     def get_timestamp_string(self):
         """Returns a high-resolution timestamp string."""
@@ -228,20 +237,20 @@ class Simulation:
             self.user_flow_report.append(cur_time + message)
 
     def __home(self, user):
-        msg = f"-User-{user}- is {STIMUL_SCROLLING} at {HOME}.\n"
+        msg = f";User;{user};{STIMUL_SCROLLING};{HOME}.\n"
         self.__add_message_to_user_flow_report(msg)
 
     def __view_product(self, user, product):
-        msg = f"-User-{user}- is {STIMUL_ZOOM} at {VIEW_PRODUCT} {product}.\n"
+        msg = f";User;{user};{STIMUL_ZOOM};{VIEW_PRODUCT} {product}.\n"
         self.__add_message_to_user_flow_report(msg)
 
 
     def __cart(self, user, product):
-        msg = f"-User-{user}- is {STIMUL_CLICK} at {CART} with {product}.\n"
+        msg = f";User;{user};{STIMUL_CLICK};{CART} with {product}.\n"
         self.__add_message_to_user_flow_report(msg)
 
     def __checkout(self, user, product_list):
-        msg = f"-User-{user}- is {STIMUL_CLICK} at {CHECKOUT} with {product_list}.\n"
+        msg = f";User;{user};{STIMUL_CLICK};{CHECKOUT} with {product_list}.\n"
         self.__add_message_to_user_flow_report(msg)
 
         
@@ -251,17 +260,16 @@ class Simulation:
                 dictionary_products[product] = dictionary_products.get(product, 0) + 1
             for product, quantity in dictionary_products.items():
                 purchase_order = self.__generate_purchase_order(user, product, quantity)
-                mesage = f"-Audit-{user}- created a purchase order for Product: {purchase_order.product_id} Quantity: {purchase_order.quantity}.\n"
+                mesage = f";Audit;{user};created a purchase order for Product: {purchase_order.product_id} Quantity: {purchase_order.quantity}.\n"
                 self.__add_message_to_log(mesage)
-                # update the stock of the products
                 self.__decrease_stock(product, quantity)
         add_purchase_order()
             
     def __exit(self, user):
-        msg = f"-User-{user}- is {STIMUL_CLICK} at {EXIT}.\n"
+        msg = f";User;{user};{STIMUL_CLICK};{EXIT}\n"
         self.__add_message_to_user_flow_report(msg)
 
-        msg = f"-Audit-{user}- at {EXIT}.\n"
+        msg = f";Audit;{user};{EXIT}\n"
         self.__add_message_to_log(msg)
 
 
@@ -322,6 +330,8 @@ class Simulation:
         # add cycle to the beginning of the base name of the http request file
         request_cycle = f"{self.folder_name}/{self.subfolder_http_request}/{self.cycle}{self.request_file_name}"
 
+        log_flow_colunms = ["timestamp", "type", "content", "extra_1", "extra_2"]
+        self.log_flow.insert(0, ";".join(log_flow_colunms) + "\n")
         # add use_flow_report list to the beginning of the base name of the log file
         self.log_flow.extend(self.user_flow_report)
 
@@ -343,7 +353,6 @@ class Simulation:
                 writer.writerows(content)
         self.new_users = []
 
-        # update (create if not exists) the new_products in a .csv file, keeping existent products
         if self.new_products:
             with open(self.csv_complete_path[1], 'a') as file:
                 writer = csv.writer(file, delimiter=';', lineterminator='\n')
@@ -352,9 +361,10 @@ class Simulation:
         self.new_products = []
 
         if self.new_stock_decreases:
-        # TODO: Efficient approach with temporary file 
             with open(self.csv_complete_path[2], 'w', newline='') as file:
                 writer = csv.writer(file, delimiter=';', lineterminator='\n')
+                first_line = ["id_product", "quantity"]
+                writer.writerow(first_line)
                 content = [[product_id, quantity] for product_id, quantity in self.stock.items()]
                 writer.writerows(content)
         self.new_stock_decreases = {}
