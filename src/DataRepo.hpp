@@ -184,7 +184,7 @@ public:
 
                 // Write a comma if it is not the last column
                 if (j < df.getColumnCount() - 1) {
-                    out << ",";S
+                    out << ",";
                 }
             }
 
