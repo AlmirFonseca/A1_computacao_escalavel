@@ -106,7 +106,7 @@ public:
      * 
      * @param sourceName The source from which to extract data.
      */
-    DataFrame* extractData(const string sourceName, const char delimiter = ',') override {
+    DataFrame* extractData(const string sourceName, const char delimiter) override {
         cout << "Extracting data from " << sourceName << " using csv extraction strategy." << endl;
         
         ifstream file(sourceName);
@@ -312,13 +312,13 @@ public:
      * @param sourceName The name of the source from which to extract data.
      * @return A pointer to the DataFrame object containing the extracted data.
      */
-    DataFrame* extractData(const string& sourceName) {
+    DataFrame* extractData(const string& sourceName, const char delimiter = ',') {
         if (extractStrategy == "csv") {
             CsvExtractionStrategy csvExtractionStrategy;
-            return csvExtractionStrategy.extractData(sourceName);
+            return csvExtractionStrategy.extractData(sourceName, delimiter);
         } else if (extractStrategy == "txt") {
             TxtExtractionStrategy txtExtractionStrategy;
-            return txtExtractionStrategy.extractData(sourceName, ',');
+            return txtExtractionStrategy.extractData(sourceName, delimiter);
         } else {
             cout << "Extraction strategy not supported." << endl;
             return nullptr;
