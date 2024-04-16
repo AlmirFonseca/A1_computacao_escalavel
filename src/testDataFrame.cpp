@@ -161,6 +161,28 @@ int main() {
         emptyDataframe.print();
         emptyDataframe.printColumnTypes();
 
+        cout << endl;
+        cout << "Testing the method getDataType" << endl;
+        cout << "1 as " <<  emptyDataframe.getDataType("1") << endl;
+        cout << "1.2 as " <<  emptyDataframe.getDataType("1.2") << endl;
+        cout << "1713214692000 as " <<  emptyDataframe.getDataType("1713214692000") << endl;
+        cout << "c as " <<  emptyDataframe.getDataType("c") << endl;
+        cout << "string as " <<  emptyDataframe.getDataType("string") << endl;
+        cout << endl;
+
+        DataFrame plainDataFrame = DataFrame({"ID", "Timestamp", "Score", "Name"});
+        plainDataFrame.addRow("1", "1713214692000", "100.0", "Alice");
+        plainDataFrame.addRow("2", "1713214693000", "90.0", "Bob");
+        plainDataFrame.print();
+        plainDataFrame.printColumnTypes();
+
+        // Testing the method getValueAt
+        cout << endl;
+        cout << "Testing the method getValueAt" << endl;
+        cout << "Value at row 0 and column 0: " << plainDataFrame.getValueAt(1, 1) << endl;
+
+
+
     } catch (const std::exception& e) {
         std::cerr << "Exception occurred: " << e.what() << std::endl;
     }
