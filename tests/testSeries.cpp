@@ -1,4 +1,4 @@
-#include "Series.hpp"
+#include "../src/Series.hpp"
 #include <iostream>
 #include <string>
 
