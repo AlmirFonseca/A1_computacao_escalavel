@@ -42,7 +42,7 @@ public:
             while (active) {
                 std::cout << "TimerTrigger activated!" << std::endl;
                 for (auto observer : observers) {
-                    observer->update(); // Notify all observers
+                    observer->updateOnTimeTrigger(); // Notify all observers
                 }
                 std::this_thread::sleep_for(interval);
             }

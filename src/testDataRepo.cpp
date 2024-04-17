@@ -8,10 +8,10 @@ int main() {
         repo->setExtractionStrategy("csv");
         string csv_location = "../mock/mock_files/csv/";
         csv_location += "products.csv";
-        DataFrame* df = repo->extractData(csv_location);
+        DataFrame* df = repo->extractData(csv_location, ';');
         df->print();
-        cout << "Column types:\n";
-        // df->printColumnTypes();
+        cout << "\nColumn types:\n";
+        df->printColumnTypes(); // Doesn't work
         cout << "\nNumber of rows: ";
 
         // Load the data from the DataFrame into a txt file

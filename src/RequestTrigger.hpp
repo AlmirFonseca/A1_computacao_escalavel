@@ -40,7 +40,7 @@ public:
                 std::cout << "RequestTrigger activated!" << std::endl;
                 // Notify all observers
                 for (auto observer : observers) {
-                    observer->handleRequest();
+                    observer->updateOnRequestTrigger();
                 }
             }
         }).detach();
