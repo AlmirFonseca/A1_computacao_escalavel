@@ -8,10 +8,12 @@ if __name__ == "__main__":
 
     params = simulation.SimulationParams(
         cycle_duration=0.1,
-        num_initial_users=50,
-        num_initial_products=2,
-        qtd_stock_initial=100,
-        max_simultaneus_users=40
+        num_initial_users=1010,
+        num_initial_products=1000,
+        qtd_stock_initial=2000,
+        max_simultaneus_users=1000,
+        num_new_users_per_cycle=100,
+        num_new_products_per_cycle=100,
     )
 
     sim = simulation.Simulation(params)

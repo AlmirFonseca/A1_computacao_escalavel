@@ -1,14 +1,11 @@
 import os
 from dataclasses import dataclass
 from random import choice, randint, random, choices, shuffle
-from time import sleep, time
 import models
 import csv
 from collections import deque
-import threading
 from graph_user_flow import *
 import time
-import threading
 
 @dataclass
 class SimulationParams:
@@ -17,6 +14,8 @@ class SimulationParams:
     num_initial_products: int
     qtd_stock_initial: int
     max_simultaneus_users: int
+    num_new_users_per_cycle: int
+    num_new_products_per_cycle: int
 
 class Simulation:
     params: SimulationParams
@@ -40,8 +39,6 @@ class Simulation:
         self.depuration = []
         self.log_flow = []
         self.user_flow_report = []
-        self.lock_log_flow = threading.Lock()
-        self.lock_user_flow_report = threading.Lock()
 
         self.G = G
 
@@ -62,7 +59,7 @@ class Simulation:
         else:
             os.makedirs(self.folder_name)
 
-        # createinside folder_name or delete other folder if they exist for the other subfolders
+        # create inside folder_name or delete other folder if they exist for the other subfolders
         csvs_folder = f"{self.folder_name}/{self.subfolder_csv}"
         logs_folder = f"{self.folder_name}/{self.subfolder_log}"
         http_request_folder = f"{self.folder_name}/{self.subfolder_http_request}"
@@ -72,7 +69,6 @@ class Simulation:
                 self.remove_folder_contents(folder)
             else:
                 os.makedirs(folder)
-        
 
         # generate users at the start of the simulation
         for _ in range(self.params.num_initial_users):
@@ -127,12 +123,13 @@ class Simulation:
     
     def run(self):
         while True:
-            sleep(self.params.cycle_duration)
             self.cycle += 1
 
             # CONTA VERDE
-            self.__generate_users()
-            self.__generate_products()
+            for _ in range(self.params.num_new_users_per_cycle):
+                self.__generate_user()
+            for _ in range(self.params.num_new_products_per_cycle):
+                self.__generate_product()
             self.__generate_stock_for_new_products()
             
             # allow users to enter and perform actions on the system, after they are loged
@@ -148,6 +145,7 @@ class Simulation:
 
             self.__print_status()
             self.__report_cycle()
+            time.sleep(self.params.cycle_duration)
            
     def __introduct_errors_for_log(self):
         node = choice(nodes)
@@ -165,24 +163,15 @@ class Simulation:
         
     def __select_users_to_login(self):
 
-        num_users = len(self.waiting_users)
-
-        # creating a thread for each user
-        threads = []
         for _ in self.waiting_users.copy():
             user = self.waiting_users.popleft()
-            thread = threading.Thread(target=self.__user_flow, args=(user,))
-            threads.append(thread)
-            thread.start()
-        for thread in threads:
-            thread.join()
+            # apply userflow to the user, without using threads
+            self.__user_flow(user)
 
-        
 
     def __user_flow(self, user):
         # let the user perform actions on the system until it reaches the EXIT node
         current_node = LOGIN
-        sleep(random()/10)
         message = f";Audit;{user};{LOGIN}\n"
         self.__add_message_to_log(message)
 
@@ -199,25 +188,23 @@ class Simulation:
 
             if next_node == HOME:
                 self.__home(user)
-                sleep(random()/10)
 
             elif next_node == VIEW_PRODUCT:
                 products_in_stock = [product for product in self.products.copy() if self.stock[product] > 0]
-                current_product = choice(products_in_stock)
-                self.__view_product(user, current_product)
-                sleep(random()/10)
+                if not products_in_stock:
+                    next_node = EXIT
+                else:
+                    current_product = choice(products_in_stock)
+                    self.__view_product(user, current_product)
 
             elif next_node == CART:
                 current_product_list.append(current_product)
                 self.__cart(user, current_product)
-                sleep(random()/10)
 
             elif next_node == CHECKOUT:
                 self.__checkout(user, current_product_list)
-                sleep(random()/10)
 
             current_node = next_node
-        sleep(random()/10)
         self.__exit(user)
 
     def get_timestamp_string(self):
@@ -226,15 +213,11 @@ class Simulation:
     
     def __add_message_to_log(self, message):
         cur_time = self.get_timestamp_string()
-        with self.lock_log_flow:
-            self.log_flow.append(cur_time + message)
+        self.log_flow.append(cur_time + message)
 
     def __add_message_to_user_flow_report(self, message):
-
         cur_time = self.get_timestamp_string()
-        # add lock 
-        with self.lock_user_flow_report:
-            self.user_flow_report.append(cur_time + message)
+        self.user_flow_report.append(cur_time + message)
 
     def __home(self, user):
         msg = f";User;{user};{STIMUL_SCROLLING};{HOME}.\n"
