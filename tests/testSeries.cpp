@@ -1,4 +1,4 @@
-#include "Series.hpp"
+#include "../src/Series.hpp"
 #include <iostream>
 #include <string>
 
@@ -43,6 +43,19 @@ int main() {
         cout << "Caught an error in stringSeries: " << e.what() << endl;
     }
 
+    // Long long series
+    Series<long long> longSeries("Long Series");
+    try {
+        longSeries.add(1713214692000);
+        longSeries.add(1713214692001);
+        longSeries.add(stoll(string("1713214692002"))); // Corrected to match type
+        cout << "First element in longSeries (using operator[]): " << longSeries[0] << endl;
+        cout << "Second element in longSeries (using operator[]): " << longSeries[1] << endl;
+        cout << "Third element in longSeries (using operator[]): " << longSeries[2] << endl;
+    } catch (const runtime_error& e) {
+        cout << "Caught an error in longSeries: " << e.what() << endl;
+    }
+
     // Using print() to display series info and data
     cout << "\nDisplaying intSeries info and data:\n";
     intSeries.print();
@@ -52,6 +65,9 @@ int main() {
 
     cout << "\nDisplaying stringSeries info and data:\n";
     stringSeries.print();
+
+    cout << "\nDisplaying longSeries info and data:\n";
+    longSeries.print();
 
     return 0;
 }

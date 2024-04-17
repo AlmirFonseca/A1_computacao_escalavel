@@ -1,6 +1,6 @@
 #include <iostream>
-#include "TimerTrigger.hpp"
-#include "RequestTrigger.hpp"
+#include "../src/TimerTrigger.hpp"
+#include "../src/RequestTrigger.hpp"
 using namespace std;
 
 int main() {

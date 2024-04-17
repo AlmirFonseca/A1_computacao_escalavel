@@ -29,16 +29,21 @@ private:
     size_t rowCount = 0; /**< The number of rows in the DataFrame. */
 
 public:
-    // /**
-    //  * @brief Constructor that takes an initializer list of column names.
-    //  * 
-    //  * @param names An initializer list of column names.
-    //  */
-
-    // Default constructor
+    
+    /**
+     * @brief Represents a DataFrame object.
+     * 
+     * The DataFrame class is used to store and manipulate tabular data.
+     * It provides various methods for data manipulation and analysis.
+     */
     DataFrame() = default;
 
-    // Constructor that takes an initializer list of column names
+    
+    /**
+     * @brief Constructs a DataFrame object with the specified column names.
+     *
+     * @param names An initializer list of strings representing the column names.
+     */
     DataFrame(initializer_list<string> names) {
         for (const auto& name : names) {
             // Optionally initialize each column to a new Series of a default type
@@ -48,7 +53,13 @@ public:
         }
     }
 
-    // Constructor for initializing with a vector of column names
+    
+    /**
+     * @brief Constructs a DataFrame object with the given column names.
+     * 
+     * @param names A vector of strings representing the column names.
+     *              Each string corresponds to a column in the DataFrame.
+     */
     DataFrame(const vector<string>& names) {
         for (const auto& name : names) {
             // Optionally initialize each column to a new Series of a default type
@@ -58,17 +69,39 @@ public:
         }
     }
 
-    // Copy constructor
+    /**
+     * @brief Copy constructor
+     * 
+     * @param other The DataFrame object to be copied.
+     */
     DataFrame(const DataFrame& other) = default;
 
-    // Move constructor
+    /**
+     * @brief Move constructor
+     * 
+     * @param other The DataFrame object to be moved.
+     */
     DataFrame(DataFrame&& other) noexcept = default;
 
-    // Destructor
+    /**
+     * @brief Destructor
+     */
     virtual ~DataFrame() = default;
 
-    // Assignment operators
+    /**
+     * @brief Copy assignment operator
+     * 
+     * @param other The DataFrame object to be copied.
+     * @return A reference to the copied DataFrame object.
+     */
     DataFrame& operator=(const DataFrame& other) = default;
+
+    /**
+     * @brief Move assignment operator
+     * 
+     * @param other The DataFrame object to be moved.
+     * @return A reference to the moved DataFrame object.
+     */
     DataFrame& operator=(DataFrame&& other) noexcept = default;
 
     /**
@@ -92,6 +125,11 @@ public:
         rowCount++;
     }
 
+    /**
+     * @brief Increase the row count of the DataFrame.
+     * 
+     * This method increases the row count of the DataFrame by one.
+     */
     void increaseRowCount() {
         rowCount++;
     }
@@ -434,7 +472,6 @@ public:
         }
     }
 
-public:
     /**
      * @brief Recursive template function to handle each column in the row.
      * 
@@ -456,13 +493,40 @@ public:
 
         // For the first row, create the appropriate Series instance
         if (rowCount == 0) {
-            columns[columnNames[index]] = make_shared<Series<T>>(columnNames[index]);
+
+            // Get the correct type for the Series
+            char dataType = getDataType(convertToString(first));
+
+            // Create the appropriate Series instance
+            if (dataType == 'i') columns[columnNames[index]] = make_shared<Series<int>>(columnNames[index]);
+            else if (dataType == 'x') columns[columnNames[index]] = make_shared<Series<long long>>(columnNames[index]);
+            else if (dataType == 'f') columns[columnNames[index]] = make_shared<Series<float>>(columnNames[index]);
+            else if (dataType == 'c') columns[columnNames[index]] = make_shared<Series<char>>(columnNames[index]);
+            else columns[columnNames[index]] = make_shared<Series<T>>(columnNames[index]);
         }
 
         // Add the value to the appropriate Series
         try {
             auto& series = columns[columnNames[index]];
-            series->add(first);
+
+            // Add the value to the appropriate Series, casting it appropriately
+            try {
+                if (series->type() == typeid(int)) {
+                    series->add(stoi(convertToString(first)));
+                } else if (series->type() == typeid(long long)) {
+                    series->add(stoll(convertToString(first)));
+                } else if (series->type() == typeid(float)) {
+                    series->add(stof(convertToString(first)));
+                } else if (series->type() == typeid(char)) {
+                    series->add(convertToString(first)[0]);
+                } else {
+                    series->add(first);
+                }
+            } catch (const std::exception &e) {
+                cout << "Error while casting and adding value " + convertToString(first) + " to Series: " << e.what() << endl;
+                throw runtime_error("Type mismatch error: Unable to add value to Series.");
+            }
+
         } catch (const bad_any_cast& e) {
             throw runtime_error("Type mismatch error: Unable to add value to Series.");
         }
@@ -473,35 +537,71 @@ public:
         }
     }
 
-    // function that do the same job as addRowImpl but for one value to one column
-    // remeber to create the appropriate Series instance
+    
+    /**
+     * Adds a value to a specific column in the DataFrame.
+     * 
+     * @tparam T The type of the value being added.
+     * @param index The index of the column.
+     * @param first The value to be added.
+     * @throws std::runtime_error if the index is out of bounds or if there is a type mismatch.
+     */
     template<typename T>
     void addColumnValue(size_t index, T first) {
         if (index >= columnNames.size()) {
             throw runtime_error("Index out of bounds.");
         }
 
-        // If it's a any type, convert to string
-        if (typeid(T) == typeid(std::any)) {
-            columns[columnNames[index]]->add(std::any_cast<std::string>(first));
-            return;
-        }
-
         // For the first row, create the appropriate Series instance
         if (rowCount == 0) {
-            columns[columnNames[index]] = make_shared<Series<T>>(columnNames[index]);
+
+            // Get the correct type for the Series
+            char dataType = getDataType(convertToString(first));
+
+            // Create the appropriate Series instance
+            if (dataType == 'i') columns[columnNames[index]] = make_shared<Series<int>>(columnNames[index]);
+            else if (dataType == 'x') columns[columnNames[index]] = make_shared<Series<long long>>(columnNames[index]);
+            else if (dataType == 'f') columns[columnNames[index]] = make_shared<Series<float>>(columnNames[index]);
+            else if (dataType == 'c') columns[columnNames[index]] = make_shared<Series<char>>(columnNames[index]);
+            else columns[columnNames[index]] = make_shared<Series<T>>(columnNames[index]);
         }
 
         // Add the value to the appropriate Series
         try {
             auto& series = columns[columnNames[index]];
-            series->add(first);
+
+            // Add the value to the Series, casting it appropriately
+            try {
+                if (series->type() == typeid(int)) {
+                    series->add(stoi(convertToString(first)));
+                } else if (series->type() == typeid(long long)) {
+                    series->add(stoll(convertToString(first)));
+                } else if (series->type() == typeid(float)) {
+                    series->add(stof(convertToString(first)));
+                } else if (series->type() == typeid(char)) {
+                    series->add(convertToString(first)[0]);
+                } else {
+                    series->add(first);
+                }
+            } catch (const std::exception &e) {
+                cout << "Error while casting and adding value " + convertToString(first) + " to Series: " << e.what() << endl;
+                throw runtime_error("Type mismatch error: Unable to add value to Series.");
+            }
         } catch (const bad_any_cast& e) {
             throw runtime_error("Type mismatch error: Unable to add value to Series.");
         }
     }
 
-    // function that return the value of a row and column by their index
+    /**
+     * @brief Return a value based on the column and row index.
+     * 
+     * This method returns a value from the DataFrame based on the column and row index.
+     * 
+     * @param rowIndex The index of the row.
+     * @param columnIndex The index of the column.
+     * @return The value at the specified row and column.
+     * @throws runtime_error If the row or column index is out of bounds.
+     */
     string getValueAt(size_t rowIndex, size_t columnIndex) {
         if (rowIndex >= rowCount || columnIndex >= columnNames.size()) {
             throw runtime_error("Index out of bounds.");
@@ -510,7 +610,15 @@ public:
         return columns[columnNames[columnIndex]]->getStringAtIndex(rowIndex);
     }
 
-    // function that return the value name of a column by index
+    /**
+     * @brief Return a column name
+     * 
+     * This method returns the name of a column based on the column index.
+     * 
+     * @param columnIndex The index of the column.
+     * @return The name of the column.
+     * @throws runtime_error If the column index is out of bounds.
+     */
     string getColumnName(size_t columnIndex) {
         if (columnIndex >= columnNames.size()) {
             throw runtime_error("Index out of bounds.");
@@ -518,6 +626,65 @@ public:
 
         return columnNames[columnIndex];
     }
+
+    /**
+     * @brief Check if a string has all numeric characters.
+     * 
+     * This method checks if a string has all numeric characters.
+     * 
+     * @param str The input string.
+     * @return true if the string has all numeric characters, false otherwise.
+     */
+    bool isNumeric(const std::string& str) {
+        return !str.empty() && std::find_if(str.begin(),
+                                            str.end(), [](unsigned char c) { return !std::isdigit(c); }) == str.end();
+    }
+
+    /**
+     * @brief Check if a string is a float.
+     * 
+     * This method checks if a string is a float.
+     * 
+     * @param str The input string.
+     * @return true if the string is a float, false otherwise.
+     */
+    bool isFloat(const std::string& str) {
+        return !str.empty() && std::count(str.begin(), str.end(), '.') == 1 &&
+            std::all_of(str.begin(), str.end(), [](unsigned char c) { return std::isdigit(c) || c == '.'; });
+    }
+
+    /**
+     * @brief Infer the data type based on the input string.
+     * 
+     * This method infers the data type based on the input string.
+     * The method checks if the string is a int, long long, float, char or string
+     * 
+     * @param input The input string.
+     * @return The inferred data type.
+     */
+    char getDataType(string input) {
+        char dataType = '?';
+
+        // Check if the string is a number
+        if (isNumeric(input)) {
+            // Check if is a long or a commom int
+            try {
+                stoi(input);
+                dataType = 'i';
+            } catch (const std::out_of_range& e) {
+                dataType = 'x';
+            }
+        } else if (isFloat(input)) {
+            dataType = 'f';
+        } else {
+            // Check if the string is either a char or a string
+            if (input.length() == 1) dataType = 'c';
+            else dataType = 's';                
+        }
+        return dataType;
+    }
 };
+
+
 
 #endif // DATAFRAME_HPP
