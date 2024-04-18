@@ -1,6 +1,7 @@
 # ifndef SEMAPHORE_HPP
 # define SEMAPHORE_HPP
 
+#include <iostream>
 #include <mutex>
 #include <condition_variable>
 
