@@ -472,6 +472,31 @@ public:
         }
     }
 
+    void concat(const DataFrame& other) {
+        if (columnNames != other.columnNames) {
+            throw runtime_error("Column names do not match.");
+        }
+
+        for (size_t i = 0; i < other.rowCount; ++i) {
+            for (const auto& name : columnNames) {
+                cloneValue(name, other, i, name);
+            }
+        }
+
+        rowCount += other.rowCount;
+    }
+
+    static DataFrame concat(const DataFrame& df1, const DataFrame& df2) {
+        // Deep copy the first dataframe
+        DataFrame result;
+        result.deepCopy(df1);
+
+        // Apply the concat method to the copied dataframe
+        result.concat(df2);
+
+        return result;
+    }
+
     /**
      * @brief Recursive template function to handle each column in the row.
      * 

@@ -131,6 +131,13 @@ int main() {
 
         cout << endl;
 
+        cout << "Test the concat method" << endl;
+        cout << "Original + copy DataFrame (deep copy)" << endl;
+        DataFrame dfConcat = DataFrame::concat(df, dfCopy);
+        dfConcat.print();
+
+        cout << endl;
+
         cout << "Test a copy without keeping the data" << endl;
         DataFrame dfCopy2;
         dfCopy2.deepCopy(df, false);
