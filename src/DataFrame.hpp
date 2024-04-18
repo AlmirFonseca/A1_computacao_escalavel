@@ -472,20 +472,48 @@ public:
         }
     }
 
+    /**
+     * @brief Concatenate another DataFrame to this DataFrame.
+     * 
+     * This method concatenates another DataFrame to this DataFrame.
+     * The method assumes that the column names of both DataFrames match.
+     * 
+     * @param other The DataFrame to be concatenated.
+     * @throws std::runtime_error If the column names do not match.
+     */
     void concat(const DataFrame& other) {
+        // Check if the number of columns match
         if (columnNames != other.columnNames) {
             throw runtime_error("Column names do not match.");
+        } else {
+            // Check if each column names and types matches
+            for (const auto& name : columnNames) {
+                if (columns.at(name)->type() != other.columns.at(name)->type()) {
+                    throw runtime_error("Column types do not match.");
+                }
+            }
         }
 
+        // Concatenate each row of data from the other DataFrame
         for (size_t i = 0; i < other.rowCount; ++i) {
             for (const auto& name : columnNames) {
                 cloneValue(name, other, i, name);
             }
         }
 
+        // Update the row count
         rowCount += other.rowCount;
     }
 
+    /**
+     * @brief Concatenate two DataFrames.
+     * 
+     * This method concatenates two DataFrames and returns the result as a new DataFrame.
+     * 
+     * @param df1 The first DataFrame to be concatenated.
+     * @param df2 The second DataFrame to be concatenated.
+     * @return The concatenated DataFrame.
+     */
     static DataFrame concat(const DataFrame& df1, const DataFrame& df2) {
         // Deep copy the first dataframe
         DataFrame result;
