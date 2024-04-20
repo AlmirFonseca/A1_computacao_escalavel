@@ -10,6 +10,7 @@
 #include <type_traits>
 #include <typeinfo>
 #include <vector>
+#include <numeric>
 
 using namespace std;
 
@@ -333,6 +334,18 @@ public:
      */
     void clear() override {
         data.clear();
+    }
+
+    /**
+     * @brief Computes the sum of the elements in the series.
+     * 
+     * This function computes the sum of the elements in the series. It is only available for arithmetic types.
+     * 
+     * @return The sum of the elements in the series.
+     */
+    T sum() const {
+        static_assert(std::is_arithmetic<T>::value, "Sum operation not supported for non-arithmetic types.");
+        return std::accumulate(data.begin(), data.end(), T{});
     }
 };
 

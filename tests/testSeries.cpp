@@ -69,5 +69,11 @@ int main() {
     cout << "\nDisplaying longSeries info and data:\n";
     longSeries.print();
 
+    // Test the sum method
+    cout << "\nSum of intSeries: " << intSeries.sum() << endl;
+    cout << "Sum of doubleSeries: " << doubleSeries.sum() << endl;
+    cout << "Sum of longSeries: " << longSeries.sum() << endl;
+    // cout << "Sum of stringSeries: " << stringSeries.sum() << endl; -> Throws a compile-time assertion error
+
     return 0;
 }
