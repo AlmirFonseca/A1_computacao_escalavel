@@ -15,6 +15,60 @@
 
 using namespace std;
 
+enum class CompareOperation {
+    EQUAL,
+    NOT_EQUAL,
+    GREATER_THAN,
+    GREATER_THAN_OR_EQUAL,
+    LESS_THAN,
+    LESS_THAN_OR_EQUAL
+};
+
+template<typename T>
+bool performComparison(T val1, T val2, CompareOperation op) {
+    switch (op) {
+        case CompareOperation::EQUAL:
+            return val1 == val2;
+        case CompareOperation::NOT_EQUAL:
+            return val1 != val2;
+        case CompareOperation::GREATER_THAN:
+            return val1 > val2;
+        case CompareOperation::GREATER_THAN_OR_EQUAL:
+            return val1 >= val2;
+        case CompareOperation::LESS_THAN:
+            return val1 < val2;
+        case CompareOperation::LESS_THAN_OR_EQUAL:
+            return val1 <= val2;
+        default:
+            std::cerr << "Unsupported comparison operation." << std::endl;
+            return false;  // Handle unknown operation
+    }
+}
+
+bool compareValues(const std::type_info& typeInfo, const std::any& a, const std::any& b, CompareOperation op) {
+    if (a.type() != b.type()) {
+        std::cerr << "Type mismatch: cannot compare different types." << std::endl;
+        return false;  // Early exit if types don't match directly
+    }
+
+    try {
+        // Using common_type to deduce the best type for comparison
+        using CommonType = std::common_type_t<decltype(std::any_cast<int>(a)), decltype(std::any_cast<int>(b))>;
+
+        // Perform the cast and comparison using the common type
+        CommonType val1 = std::any_cast<CommonType>(a);
+        CommonType val2 = std::any_cast<CommonType>(b);
+
+        return performComparison(val1, val2, op);
+    } catch (const std::bad_any_cast& e) {
+        std::cerr << "Failed to cast types for comparison: " << e.what() << std::endl;
+    } catch (...) {
+        std::cerr << "An error occurred during comparison." << std::endl;
+    }
+
+    return false;
+}
+
 /**
  * @brief A class representing a DataFrame.
  * 
@@ -245,10 +299,10 @@ public:
      * 
      * @param columnName The name of the column to filter by.
      * @param filterValue The value to filter by.
-     * @param keep A flag to indicate whether to keep or remove rows that match the filter value.
+     * @param op The comparison operation to use for filtering.
      * @throws std::runtime_error If the column does not exist.
      */
-    void filterByColumn(const std::string& columnName, const std::any& filterValue, bool keep = true) {
+    void filterByColumn(const std::string& columnName, const std::any& filterValue, CompareOperation op) {
         auto colIt = columns.find(columnName);
         if (colIt == columns.end()) {
             throw std::runtime_error("Column not found: " + columnName);
@@ -259,10 +313,10 @@ public:
         // Iterate from the last index to the first
         for (size_t i = rowCount; i-- > 0;) {
             const std::any& columnValue = colIt->second->getDataAtIndex(i);
-            bool comparisonResult = compareAny(columnType, columnValue, filterValue);
+            bool comparisonResult = compareValues(columnType, columnValue, filterValue, op);
 
             // Decide whether to remove the row based on the `keep` flag and comparison result
-            if ((keep && !comparisonResult) || (!keep && comparisonResult)) {
+            if (!comparisonResult) {
                 // Remove the row from each Series if the values do not match the desired condition
                 for (auto& [name, series] : columns) {
                     series->removeAtIndex(i);
@@ -270,40 +324,6 @@ public:
                 --rowCount;
             }
         }
-    }
-
-    /**
-     * @brief Compare two std::any values of the same type.
-     * 
-     * This function compares two std::any values of the same type.
-     * It is used to compare the values of a column with a filter value.
-     * 
-     * @param typeInfo The type_info of the values to be compared.
-     * @param a The first value to be compared.
-     * @param b The second value to be compared.
-     * @return true if the values match, false otherwise.
-     */
-    bool compareAny(const std::type_info& typeInfo, const std::any& a, const std::any& b) {
-        if (a.type() != b.type()) return false;  // Early exit if types don't match directly
-
-        try {
-            if (typeInfo == typeid(int)) {
-                return std::any_cast<int>(a) == std::any_cast<int>(b);
-            } else if (typeInfo == typeid(double)) {
-                return std::any_cast<double>(a) == std::any_cast<double>(b);
-            } else if (typeInfo == typeid(std::string)) {
-                return std::any_cast<std::string>(a) == std::any_cast<std::string>(b);
-            } else if (typeInfo == typeid(char)) {
-                // Special handling for chars to avoid treating them as integers
-                return std::any_cast<char>(a) == std::any_cast<char>(b);
-            }
-            // Add more types as needed
-        } catch (const std::bad_any_cast&) {
-            // Log error or handle exception as needed
-            return false; // Return false if any cast fails
-        }
-
-        return false; // If type is not handled, return false
     }
 
     /**

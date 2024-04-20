@@ -47,34 +47,67 @@ int main() {
         df.printColumnTypes();
         cout << endl;
 
-        // Test the method filterByColumn over the colum score == 100
-        df.filterByColumn("ID", 1);
-        df.print();
-        cout << endl;
+        // // Test the method filterByColumn over the colum score == 100
+        // df.filterByColumn("ID", 1);
+        // df.print();
+        // cout << endl;
 
-        df.addRow(5, 100.0, string("On"), 'A', 1);
-        df.addRow(6, 100.0, string("On"), 'A', 0);
-        df.addRow(7, 100.0, string("Off"), 'A', 1);
-        df.addRow(8, 100.0, string("Off"), 'A', 0);
-        df.print();
-        cout << endl;
+        // df.addRow(5, 100.0, string("On"), 'A', 1);
+        // df.addRow(6, 100.0, string("On"), 'A', 0);
+        // df.addRow(7, 100.0, string("Off"), 'A', 1);
+        // df.addRow(8, 100.0, string("Off"), 'A', 0);
+        // df.print();
+        // cout << endl;
 
-        cout << "KEEP FALSE" << endl;
-        df.filterByColumn("Score", 100.0, false); // false means (remove the rows that are don't match)
-        df.print();
-        cout << endl;
+        // cout << "KEEP FALSE" << endl;
+        // df.filterByColumn("Score", 100.0, false); // false means (remove the rows that are don't match)
+        // df.print();
+        // cout << endl;
 
-        df.addRow(5, 100.0, string("On"), 'A', 1);
-        df.addRow(6, 100.0, string("On"), 'A', 0);
-        df.addRow(7, 100.0, string("Off"), 'A', 1);
-        df.print();
-        cout << endl;
+        // df.addRow(5, 100.0, string("On"), 'A', 1);
+        // df.addRow(6, 100.0, string("On"), 'A', 0);
+        // df.addRow(7, 100.0, string("Off"), 'A', 1);
+        // df.print();
+        // cout << endl;
 
-        cout << "KEEP TRUE" << endl;
-        df.filterByColumn("Score", 100.0, true); // true means (keep the rows that are match)
-        df.print();
-        cout << endl;
-        df.addRow(8, 100.0, string("Off"), 'A', 0);
+        // cout << "KEEP TRUE" << endl;
+        // df.filterByColumn("Score", 100.0, true); // true means (keep the rows that are match)
+        // df.print();
+        // cout << endl;
+        // df.addRow(8, 100.0, string("Off"), 'A', 0);
+
+        DataFrame dfAge({"Age", "Salary"});
+    
+        // Adding some rows to the DataFrame
+        dfAge.addRow(25, 50000);
+        dfAge.addRow(30, 60000);
+        dfAge.addRow(35, 70000);
+        dfAge.addRow(40, 80000);
+        dfAge.addRow(45, 90000);
+        dfAge.addRow(50, 100000);
+        dfAge.addRow(55, 110000);
+        dfAge.addRow(60, 120000);
+        dfAge.addRow(65, 130000);
+        dfAge.addRow(70, 140000);
+        dfAge.addRow(75, 150000);
+        dfAge.addRow(80, 160000);
+        dfAge.addRow(85, 170000);
+        dfAge.addRow(90, 180000);
+        dfAge.addRow(95, 190000);
+        dfAge.addRow(100, 200000);
+
+        cout << "Original DataFrame (before filtering)" << endl;
+        dfAge.print();
+        
+        // Filter rows where Age is less than 35
+        dfAge.filterByColumn("Age", 35, CompareOperation::GREATER_THAN_OR_EQUAL);
+        cout << "DataFrame after filtering (Age >= 35)" << endl;
+        dfAge.print();
+
+        // Filter rows where Salary is greater than 100000
+        dfAge.filterByColumn("Salary", 100000, CompareOperation::LESS_THAN);
+        cout << "DataFrame after filtering (Salary < 100000)" << endl;
+        dfAge.print();
 
         // Create two DataFrames with same column names
         DataFrame df1({"timestamp", "sensor1", "sensor2", "origin"});
