@@ -4,323 +4,181 @@
 #include <iostream>
 #include <thread>
 #include <mutex>
-#include <condition_variable>
-#include <queue>
 #include <chrono>
 #include <string>
 #include "DataFrame.hpp"
+#include "Queue.hpp"
 
 /**
  * @brief Class for handling data in a separate thread.
+ *  
+ * This class is a base class for handling data in a separate thread.
+ * It reads data from an input queue, processes it and writes the result to an output queue.
  */
 class DataHandler {
+protected:
+    Queue<DataFrame> inputQueue;
+    Queue<DataFrame> outputQueue;
+
 public:
     /**
      * @brief Construct a new DataHandler object.
      * 
-     * @param input_queue Reference to the input queue.
-     * @param output_queue Reference to the output queue.
+     * @param inputQueueSize Reference to the input queue.
+     * @param outputQueueSize Reference to the output queue.
      */
-    DataHandler(std::queue<std::string>& input_queue, std::queue<std::string>& output_queue)
-        : input_queue(input_queue), output_queue(output_queue), stop_flag(false) {}
+    // Constructor
+    DataHandler(int inputQueueSize, int outputQueueSize)
+        : inputQueue(inputQueueSize), outputQueue(outputQueueSize) {}
+
+    // Destructor
+    virtual ~DataHandler() {}
 
     /**
-     * @brief Start the data handling thread.
-     */
-    void start() {
-        thread = std::thread(&DataHandler::run, this);
-    }
-
-    virtual void handle(DataFrame& df) = 0;
-
-    /**
-     * @brief Stop the data handling thread.
-     */
-    void stop() {
-        {
-            std::unique_lock<std::mutex> lock(mutex);
-            stop_flag = true;
-        }
-        condition.notify_all(); // Notifies the thread to stop
-        thread.join(); // Wait for the thread to finish
-    }
-
-    /**
-     * @brief Process the data.
+     * @brief Execute the data handler.
      * 
-     * @param data The data to be processed.
+     * This method is called by the thread to execute the data handler.
+     * It reads data from the input queue, processes it and writes the result to the output queue.
      */
-    void process_data(std::string& data) {
-        // Data processing logic
-        std::string processed_data = "Processed: " + data;
-        std::cout << "Processed data: " << processed_data << std::endl;
-        // Put the processed data into the output queue
-        {
-            std::unique_lock<std::mutex> lock(mutex);
-            output_queue.push(processed_data);
-        }
-        condition.notify_one(); // Notifies the thread to proceed
-    }
-
-private:
-    /**
-     * @brief Main function to run in the thread.
-     */
-    void run() {
+    void operator()() {
         while (true) {
-            std::string data;
-            {
-                std::unique_lock<std::mutex> lock(mutex);
-                // Wait until there is data in the input queue or until the thread is stopped
-                condition.wait(lock, [&] { return !input_queue.empty() || stop_flag; });
-                // If the thread is stopped and the input queue is empty, break the loop
-                if (stop_flag && input_queue.empty()) break;
-                // Get the data from the input queue
-                data = input_queue.front();
-                input_queue.pop();
-            }
+            // Read data from the input queue
+            DataFrame df = inputQueue.pop();
+
             // Process the data
-            process_data(data);
+            execute(df);
+
+            // Write the result to the output queue
+            outputQueue.push(df);
         }
     }
 
-    std::thread thread; /**< The thread object */
-    std::queue<std::string>& input_queue; /**< Reference to the input queue */
-    std::queue<std::string>& output_queue; /**< Reference to the output queue */
-    std::mutex mutex; /**< Mutex for thread synchronization */
-    std::condition_variable condition; /**< Condition variable for thread synchronization */
-    bool stop_flag; /**< Flag to indicate if the thread should stop */
+    /**
+     * @brief Execute the data handler.
+     * 
+     * This method is called by the thread to execute the data handler.
+     * It processes the data in a DataFrame.
+     * 
+     * @param df The DataFrame to process.
+     */
+    virtual void execute(DataFrame& df) = 0;
 };
 
 /**
  * @brief Class for filtering data in a DataFrame.
+ * 
+ * This class is a subclass of DataHandler.
+ * It filters the data in a DataFrame based on a column name and a filter value.
+ * The rows that match the filter can be kept or removed.
  */
 class FilterHandler : public DataHandler {
+private:
+    std::string ColunmName;
+    std::any filterValue;
+    bool keep;
+
 public:
     /**
      * @brief Construct a new FilterHandler object.
      * 
-     * @param input_queue Reference to the input queue.
-     * @param output_queue Reference to the output queue.
+     * @param inputQueueSize Reference to the input queue.
+     * @param outputQueueSize Reference to the output queue.
+     * @param ColunmName The name of the column to filter.
+     * @param filterValue The value to filter.
+     * @param keep Flag to indicate if the rows that match the filter should be kept.
      */
-    FilterHandler(std::queue<std::string>& input_queue, std::queue<std::string>& output_queue)
-        : DataHandler(input_queue, output_queue) {}
+    FilterHandler(int inputQueueSize, int outputQueueSize, std::string ColunmName, std::any filterValue, bool keep)
+        : DataHandler(inputQueueSize, outputQueueSize), ColunmName(ColunmName), filterValue(filterValue), keep(keep) {}
 
-    /**
-     * @brief Handle the data.
-     * 
-     * @param df The DataFrame to be filtered.
-     */
-    void handle(std::string& columnName, std::string& operation, std::string& value) {
-        // Implement the data filtering logic
-        // Filter the data if the column type is int
-        if (columnName == typeid(int).name()) {
-            // Get the column data
-            std::vector<int> columnData = df.getColumn<int>(columnName);
-            // Create a new vector to store the filtered data
-            std::vector<int> filteredData;
-            // Filter the data based on the operation
-            // Filter for equality
-            if (operation == "==") {
-                // Loop through the column data
-                for (int i = 0; i < columnData.size(); i++) {
-                    // If the value in the column is equal to the filter value, 
-                    // add it to the filtered data
-                    if (columnData[i] == std::stoi(value)) {
-                        filteredData.push_back(columnData[i]);
-                    }
-                }
-            // Filter for inequality
-            } else if (operation == "!=") {
-                for (int i = 0; i < columnData.size(); i++) {
-                    // If the value in the column is not equal to the filter value,
-                    // add it to the filtered data
-                    if (columnData[i] != std::stoi(value)) {
-                        filteredData.push_back(columnData[i]);
-                    }
-                }
-            // Filter for greater than
-            } else if (operation == ">") {
-                for (int i = 0; i < columnData.size(); i++) {
-                    // If the value in the column is greater than the filter value,
-                    // add it to the filtered data
-                    if (columnData[i] > std::stoi(value)) {
-                        filteredData.push_back(columnData[i]);
-                    }
-                }
-            // Filter for less than
-            } else if (operation == "<") {
-                for (int i = 0; i < columnData.size(); i++) {
-                    // If the value in the column is less than the filter value,
-                    // add it to the filtered data
-                    if (columnData[i] < std::stoi(value)) {
-                        filteredData.push_back(columnData[i]);
-                    }
-                }
-            // Filter for greater than or equal to
-            } else if (operation == ">=") {
-                for (int i = 0; i < columnData.size(); i++) {
-                    // If the value in the column is greater than or equal to the
-                    // filter value, add it to the filtered data
-                    if (columnData[i] >= std::stoi(value)) {
-                        filteredData.push_back(columnData[i]);
-                    }
-                }
-            // Filter for less than or equal to
-            } else if (operation == "<=") {
-                for (int i = 0; i < columnData.size(); i++) {
-                    // If the value in the column is less than or equal to the
-                    // filter value, add it to the filtered data
-                    if (columnData[i] <= std::stoi(value)) {
-                        filteredData.push_back(columnData[i]);
-                    }
-                }
-            // If the operation is not recognized, throw an exception
-            } else {
-                throw std::invalid_argument("Invalid operation");
-            }
-            // Add the filtered data to the DataFrame
-            df.addColumn<int>(columnName, filteredData);
-        }
-        // Filter the data if the column type is double
-        else if (columnName == typeid(double).name()) {
-            // Get the column data
-            std::vector<double> columnData = df.getColumn<double>(columnName);
-            // Create a new vector to store the filtered data
-            std::vector<double> filteredData;
-            // Filter the data based on the operation
-            // Filter for equality
-            if (operation == "==") {
-                for (int i = 0; i < columnData.size(); i++) {
-                    // If the value in the column is equal to the filter value, 
-                    // add it to the filtered data
-                    if (columnData[i] == std::stod(value)) {
-                        filteredData.push_back(columnData[i]);
-                    }
-                }
-            // Filter for inequality
-            } else if (operation == "!=") {
-                for (int i = 0; i < columnData.size(); i++) {
-                    // If the value in the column is not equal to the filter value,
-                    // add it to the filtered data
-                    if (columnData[i] != std::stod(value)) {
-                        filteredData.push_back(columnData[i]);
-                    }
-                }
-            // Filter for greater than
-            } else if (operation == ">") {
-                for (int i = 0; i < columnData.size(); i++) {
-                    // If the value in the column is greater than the filter value,
-                    // add it to the filtered data
-                    if (columnData[i] > std::stod(value)) {
-                        filteredData.push_back(columnData[i]);
-                    }
-                }
-            // Filter for less than
-            } else if (operation == "<") {
-                for (int i = 0; i < columnData.size(); i++) {
-                    // If the value in the column is less than the filter value,
-                    // add it to the filtered data
-                    if (columnData[i] < std::stod(value)) {
-                        filteredData.push_back(columnData[i]);
-                    }
-                }
-            // Filter for greater than or equal to
-            } else if (operation == ">=") {
-                for (int i = 0; i < columnData.size(); i++) {
-                    // If the value in the column is greater than or equal to the
-                    // filter value, add it to the filtered data
-                    if (columnData[i] >= std::stod(value)) {
-                        filteredData.push_back(columnData[i]);
-                    }
-                }
-            // Filter for less than or equal to
-            } else if (operation == "<=") {
-                for (int i = 0; i < columnData.size(); i++) {
-                    // If the value in the column is less than or equal to the
-                    // filter value, add it to the filtered data
-                    if (columnData[i] <= std::stod(value)) {
-                        filteredData.push_back(columnData[i]);
-                    }
-                }
-            // If the operation is not recognized, throw an exception
-            } else {
-                throw std::invalid_argument("Invalid operation");
-            }
-            // Add the filtered data to the DataFrame
-            df.addColumn<double>(columnName, filteredData);
-        } 
-        // Filter the data if the column type is string
-        else if (columnName == typeid(std::string).name()) {
-            // Get the column data
-            std::vector<std::string> columnData = df.getColumn<std::string>(columnName);
-            // Create a new vector to store the filtered data
-            std::vector<std::string> filteredData;
-            // Filter the data based on the operation
-            // Filter for equality
-            if (operation == "==") {
-                for (int i = 0; i < columnData.size(); i++) {
-                    // If the value in the column is equal to the filter value, 
-                    // add it to the filtered data
-                    if (columnData[i] == value) {
-                        filteredData.push_back(columnData[i]);
-                    }
-                }
-            // Filter for inequality
-            } else if (operation == "!=") {
-                for (int i = 0; i < columnData.size(); i++) {
-                    // If the value in the column is not equal to the filter value,
-                    // add it to the filtered data
-                    if (columnData[i] != value) {
-                        filteredData.push_back(columnData[i]);
-                    }
-                }
-            // If the operation is not recognized, throw an exception
-            } else {
-                throw std::invalid_argument("Invalid operation");
-            }
-            // Add the filtered data to the DataFrame
-            df.addColumn<std::string>(columnName, filteredData);
-        } 
-        // Filter the data if the column type is char
-        else if (columnName == typeid(char).name()) {
-            // Get the column data
-            std::vector<char> columnData = df.getColumn<char>(columnName);
-            // Create a new vector to store the filtered data
-            std::vector<char> filteredData;
-            // Filter the data based on the operation
-            // Filter for equality
-            if (operation == "==") {
-                for (int i = 0; i < columnData.size(); i++) {
-                    // If the value in the column is equal to the filter value,
-                    // add it to the filtered data
-                    if (columnData[i] == value[0]) {
-                        filteredData.push_back(columnData[i]);
-                    }
-                }
-            // Filter for inequality
-            } else if (operation == "!=") {
-                for (int i = 0; i < columnData.size(); i++) {
-                    // If the value in the column is not equal to the filter value,
-                    // add it to the filtered data
-                    if (columnData[i] != value[0]) {
-                        filteredData.push_back(columnData[i]);
-                    }
-                }
-            // If the operation is not recognized, throw an exception
-            } else {
-                throw std::invalid_argument("Invalid operation");
-            }
-            // Add the filtered data to the DataFrame
-            df.addColumn<char>(columnName, filteredData);
-        } 
-        // If the column type is not recognized, throw an exception
-        else {
-            throw std::invalid_argument("Invalid column type");
-        }
-        // Put the DataFrame into the output queue
-        std::unique_lock<std::mutex> lock(mutex);
-        output_queue.push(df.toString());
+    // Inherited from DataHandler
+    void execute(DataFrame& df) override {
+        // Filter the DataFrame
+        df.filterByColumn(ColunmName, filterValue, keep);
     }
+};
+
+/**
+ * @brief Class for joining two DataFrames.
+ * 
+ * This class is a subclass of DataHandler.
+ * It joins two DataFrames based on a column name.
+ */
+class JoinHandler : public DataHandler {
+private:
+    std::string ColunmName;
+
+public:
+    /**
+     * @brief Construct a new JoinHandler object.
+     * 
+     * @param inputQueueSize Reference to the input queue.
+     * @param outputQueueSize Reference to the output queue.
+     * @param ColunmName The name of the column to join.
+     */
+    JoinHandler(int inputQueueSize, int outputQueueSize, std::string ColunmName)
+        : DataHandler(inputQueueSize, outputQueueSize), ColunmName(ColunmName) {}
+
+    // Inherited from DataHandler
+    void execute(DataFrame& df) override {
+        // Join the DataFrame
+        df.joinByColumn(ColunmName);
+    }
+};
+
+/**
+ * @brief Class for grouping data in a DataFrame.
+ * 
+ * This class is a subclass of DataHandler.
+ * It groups the data in a DataFrame based on a column name.
+ */
+class GroupByHandler : public DataHandler {
+private:
+    std::string ColunmName;
+
+public:
+    /**
+     * @brief Construct a new GroupByHandler object.
+     * 
+     * @param inputQueueSize Reference to the input queue.
+     * @param outputQueueSize Reference to the output queue.
+     * @param ColunmName The name of the column to group.
+     */
+    GroupByHandler(int inputQueueSize, int outputQueueSize, std::string ColunmName)
+        : DataHandler(inputQueueSize, outputQueueSize), ColunmName(ColunmName) {}
+
+    // Inherited from DataHandler
+    void execute(DataFrame& df) override {
+        // Group the DataFrame
+        df.groupByColumn(ColunmName);
+    }
+};
+
+/**
+ * @brief Class for sorting data in a DataFrame.
+ * 
+ * This class is a subclass of DataHandler.
+ * It sorts the data in a DataFrame based on a column name.
+ */
+class SortHandler : public DataHandler {
+private:
+    std::string ColunmName;
+
+public:
+    /**
+     * @brief Construct a new SortHandler object.
+     * 
+     * @param inputQueueSize Reference to the input queue.
+     * @param outputQueueSize Reference to the output queue.
+     * @param ColunmName The name of the column to sort.
+     */
+    SortHandler(int inputQueueSize, int outputQueueSize, std::string ColunmName)
+        : DataHandler(inputQueueSize, outputQueueSize), ColunmName(ColunmName) {}
+
+    // Inherited from DataHandler
+    void execute(DataFrame& df) override {
+        // Sort the DataFrame
+        df.sortByColumn(ColunmName);
+    }
+};
 
 #endif // DATAHANDLER_HPP
