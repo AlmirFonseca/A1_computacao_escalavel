@@ -148,8 +148,10 @@ class Simulation:
             time.sleep(self.params.cycle_duration)
            
     def __introduct_errors_for_log(self):
-        node = choice(nodes)
-        message = f";Error;{node}.\n"
+        
+        # choose a random number int from 0 to 5
+        component_error = randint(0, 5)
+        message = f";Error;{component_error}\n"
         self.__add_message_to_log(message)
         
     def __select_waiting_users(self):
