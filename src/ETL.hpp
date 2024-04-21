@@ -105,9 +105,13 @@ private:
         std::vector<std::string> updatedTXTFiles = monitorDirectory(txtDirPath, processedTXTFiles);
         std::vector<DataFrame> dataframesTXT = processFiles(updatedTXTFiles, processedTXTFiles);
 
+        // Create queue for the dataframes
+        Queue<DataFrame*> inputQueue(INPUT_MAX_QUEUE_SIZE);
+        Queue<DataFrame*> outputQueue(OUTPUT_MAX_QUEUE_SIZE);
+
         // apply filter to the dataframer, first create a datahandler object which will filter by type == "User"
-        FilterHandler filterHandler(INPUT_MAX_QUEUE_SIZE, OUTPUT_MAX_QUEUE_SIZE, "type", "User", CompareOperation::EQUAL);
-        FilterHandler filterHandler2(INPUT_MAX_QUEUE_SIZE, OUTPUT_MAX_QUEUE_SIZE, "extra_1", "ZOOM", CompareOperation::EQUAL);
+        FilterHandler filterHandler(&inputQueue, &outputQueue);
+        FilterHandler filterHandler2(&inputQueue, &outputQueue);
         
     }
 
