@@ -19,7 +19,7 @@ private:
     std::mutex mutex;
 
 public:
-    Queue(int size) : emptyQueue(size), fullQueue(0) {}
+    Queue(int size) : emptyQueue(size, size), fullQueue(0, size) {}
 
     /**
      * @brief Pushes an element to the queue.
