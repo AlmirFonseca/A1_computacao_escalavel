@@ -3,7 +3,9 @@
 
 #include <iostream>
 #include "DataFrame.hpp"
+#include "Observer.hpp"
 #include <fstream>
+#include <sstream>
 #include <vector>
 
 using namespace std;
@@ -276,10 +278,12 @@ public:
  * The DataRepo class allows setting extraction and loading strategies for the data repository. It provides methods to extract data from a source
  * and load data into a destination using the specified strategies. It also provides a method to print the information about the data repository.
  */
-class DataRepo {
+class DataRepo : public Observer {
 private:
     string extractStrategy; /**< The extraction strategy for the data repository. */
     string loadStrategy; /**< The loading strategy for the data repository. */
+    DataFrame* extractDf; /**< The DataFrame object containing the extracted data. */
+    string loadFileName; /**< The name of the file to load the data into. */
 
 public:
     /**
@@ -353,6 +357,24 @@ public:
     void printInfo() {
         cout << "Data repository extraction strategy: " << extractStrategy << endl;
         cout << "Data repository loading strategy: " << loadStrategy << endl;
+    }
+
+    void setExtractDf(DataFrame* df) {
+        this->extractDf = df;
+    }
+
+    void setLoadFileName(string fileName) {
+        this->loadFileName = fileName;
+    }
+
+    // Interface for notification (update) from triggers
+    void updateOnTimeTrigger() override {
+        loadData(*extractDf, loadFileName);
+    }
+
+    // Interface for handling request from triggers
+    void updateOnRequestTrigger() override {
+        
     }
 };
 
