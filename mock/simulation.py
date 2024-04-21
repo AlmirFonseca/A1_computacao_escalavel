@@ -6,6 +6,7 @@ import csv
 from collections import deque
 from graph_user_flow import *
 import time
+import msvcrt
 
 @dataclass
 class SimulationParams:
@@ -307,7 +308,7 @@ class Simulation:
             return
 
     def __report_cycle(self):
-
+    
 
         # add cycle to the beginning of the base name of the log file
         log_cycle = f"{self.folder_name}/{self.subfolder_log}/{self.cycle}{self.log_filename}"
@@ -320,44 +321,94 @@ class Simulation:
         # add use_flow_report list to the beginning of the base name of the log file
         self.log_flow.extend(self.user_flow_report)
 
-        if self.log_flow:
-            with open(log_cycle, "a") as f:
-                    f.writelines(self.log_flow)
+        self.write_log(log_cycle)
         self.log_flow = []
 
-        if self.user_flow_report:
-            with open(request_cycle, "a") as f:
-                    f.writelines(self.user_flow_report)
+        self.write_log_dataAnalytics(request_cycle)
         self.user_flow_report = []
 
         # update (create if not exists) the new_users in a .csv file, keeping existent users
-        if self.new_users:
-            with open(self.csv_complete_path[0], 'a') as file:
-                writer = csv.writer(file, delimiter=';', lineterminator='\n')
-                content = [[user.id, user.name, user.email, user.address, user.registration_date, user.birth_date] for user in self.new_users]
-                writer.writerows(content)
+        self.add_new_users_to_csv()
         self.new_users = []
 
-        if self.new_products:
-            with open(self.csv_complete_path[1], 'a') as file:
-                writer = csv.writer(file, delimiter=';', lineterminator='\n')
-                content = [[product.id, product.name, product.image, product.description, product.price] for product in self.new_products]
-                writer.writerows(content)
+        self.new_method()
         self.new_products = []
 
-        if self.new_stock_decreases:
-            with open(self.csv_complete_path[2], 'w', newline='') as file:
-                writer = csv.writer(file, delimiter=';', lineterminator='\n')
-                first_line = ["id_product", "quantity"]
-                writer.writerow(first_line)
-                content = [[product_id, quantity] for product_id, quantity in self.stock.items()]
-                writer.writerows(content)
+        self.rewrite_full_stock_to_csv()
         self.new_stock_decreases = {}
 
-        if self.new_purchase_orders:
-            with open(self.csv_complete_path[3], 'a') as file:
-                writer = csv.writer(file, delimiter=';', lineterminator='\n')
-                content = [[purchase_order.user_id, purchase_order.product_id, purchase_order.quantity, purchase_order.creation_date, purchase_order.payment_date, purchase_order.delivery_date] for purchase_order in self.new_purchase_orders]
-                writer.writerows(content)
-
+        self.add_new_purchase_orders_to_csv()
         self.new_purchase_orders = []
+
+    def add_new_purchase_orders_to_csv(self):
+        if self.new_purchase_orders:
+            content = [[purchase_order.user_id, purchase_order.product_id, purchase_order.quantity, purchase_order.creation_date, purchase_order.payment_date, purchase_order.delivery_date] for purchase_order in self.new_purchase_orders]
+            with open(self.csv_complete_path[3], 'a') as file:
+                # acquire lock and write to the file, then release the lock
+                writer = csv.writer(file, delimiter=';', lineterminator='\n')
+                if self.acquire_lock(self.csv_complete_path[3]):
+                    writer.writerows(content)
+                    self.release_lock(self.csv_complete_path[3])
+
+    def rewrite_full_stock_to_csv(self):
+        if self.new_stock_decreases:
+            first_line = ["id_product", "quantity"]
+            content = [[product_id, quantity] for product_id, quantity in self.stock.items()]
+            # add the first line to the content beggining
+            content.insert(0, first_line)
+            with open(self.csv_complete_path[2], 'w', newline='') as file:
+                writer = csv.writer(file, delimiter=';', lineterminator='\n')
+                if self.acquire_lock(self.csv_complete_path[2]):
+                    writer.writerows(content)
+                    self.release_lock(self.csv_complete_path[2])
+
+
+    def new_method(self):
+        if self.new_products:
+            content = [[product.id, product.name, product.image, product.description, product.price] for product in self.new_products]
+            with open(self.csv_complete_path[1], 'a') as file:
+                writer = csv.writer(file, delimiter=';', lineterminator='\n')
+                # acquire lock and write to the file, then release the lock
+                if self.acquire_lock(self.csv_complete_path[1]):
+                    writer.writerows(content)
+                    self.release_lock(self.csv_complete_path[1])
+
+    def add_new_users_to_csv(self):
+        if self.new_users:
+            content = [[user.id, user.name, user.email, user.address, user.registration_date, user.birth_date] for user in self.new_users]
+            with open(self.csv_complete_path[0], 'a') as file:
+                writer = csv.writer(file, delimiter=';', lineterminator='\n')
+                # acquire lock and write to the file, then release the lock
+                if self.acquire_lock(self.csv_complete_path[0]):
+                    writer.writerows(content)
+                    self.release_lock(self.csv_complete_path[0])
+
+    def write_log_dataAnalytics(self, request_cycle):
+        if self.user_flow_report:
+            with open(request_cycle, "a") as f:
+                # acquire lock and write to the file, then release the lock
+                if self.acquire_lock(request_cycle):
+                    f.writelines(self.user_flow_report)
+                    self.release_lock(request_cycle)
+
+    def write_log(self, log_cycle):
+        if self.log_flow:
+            with open(log_cycle, "a") as f:
+                # acquire lock and write to the file, then release the lock
+                if self.acquire_lock(log_cycle):
+                    f.writelines(self.log_flow)
+                    self.release_lock(log_cycle)
+
+    def acquire_lock(self, file_path):
+        try:
+            msvcrt.locking(open(file_path, "rb").fileno(), msvcrt.LK_NBLCK, 1)
+            return True
+        except IOError:
+            return False
+
+    def release_lock(self, file_path):
+        try:
+            msvcrt.locking(open(file_path, "rb").fileno(), msvcrt.LK_UNLCK, 1)
+        except IOError:
+            pass
+
