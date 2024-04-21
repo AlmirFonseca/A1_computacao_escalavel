@@ -1,32 +1,34 @@
 #include <iostream>
+#include <thread>
+#include <mutex>
 #include "../src/DataHandler.hpp"
+#include "../src/DataFrame.hpp"
+#include "../src/Queue.hpp"
+#include "../src/DataRepo.hpp"
 
 // Example of using the data handler in a separate thread
 int main() {
     // Creation of input and output queues
-    std::queue<std::string> inputQueue;
-    std::queue<std::string> outputQueue;
+    Queue<DataFrame*> queueSelect(15);
+    Queue<DataFrame*> queueFilter(15);
 
-    // Creation of the specific data handler
-    std::shared_ptr<DataHandler> handler = std::make_shared<DataHandler>(inputQueue, outputQueue);
+    DataRepo* repo = new DataRepo();
+    repo->setExtractionStrategy("csv");
+    string csv_location = "../src/test.csv";
+    DataFrame* df = repo->extractData(csv_location);
 
-    // Start the execution of the data handler in a separate thread
-    std::thread handlerThread(&DataHandler::start, handler);
+    // Print DataFrame information
+    df->print();
 
-    // Example of inserting data into the input queue
-    inputQueue.push("10");
+    // Push the DataFrame to the input queue
+    queueSelect.push(df);
 
-    // Wait for a while to allow the data handler to process the data
-    std::this_thread::sleep_for(std::chrono::seconds(1));
+    auto filter = FilterHandler(&queueSelect, &queueFilter);
+    
+    // Start the filter in a separate thread
+    filter.filterByColumn("Score", 100, CompareOperation::GREATER_THAN);
 
-    // Display the processed data from the output queue
-    while (!outputQueue.empty()) {
-        std::cout << "Processed data: " << outputQueue.front() << std::endl;
-        outputQueue.pop();
-    }
-
-    // Stop the thread of the data handler
-    handlerThread.join();
+    df->print();
 
     return 0;
 }

@@ -17,51 +17,19 @@
  */
 class DataHandler {
 protected:
-    Queue<DataFrame> inputQueue;
-    Queue<DataFrame> outputQueue;
+    Queue<DataFrame*> *inputQueue;
+    Queue<DataFrame*> *outputQueue;
 
 public:
     /**
      * @brief Construct a new DataHandler object.
      * 
-     * @param inputQueueSize Reference to the input queue.
-     * @param outputQueueSize Reference to the output queue.
+     * @param inputQueue Reference to the input queue.
+     * @param outputQueue Reference to the output queue.
      */
     // Constructor
-    DataHandler(int inputQueueSize, int outputQueueSize)
-        : inputQueue(inputQueueSize), outputQueue(outputQueueSize) {}
-
-    // Destructor
-    virtual ~DataHandler() {}
-
-    /**
-     * @brief Execute the data handler.
-     * 
-     * This method is called by the thread to execute the data handler.
-     * It reads data from the input queue, processes it and writes the result to the output queue.
-     */
-    void operator()() {
-        while (true) {
-            // Read data from the input queue
-            DataFrame df = inputQueue.pop();
-
-            // Process the data
-            execute(df);
-
-            // Write the result to the output queue
-            outputQueue.push(df);
-        }
-    }
-
-    /**
-     * @brief Execute the data handler.
-     * 
-     * This method is called by the thread to execute the data handler.
-     * It processes the data in a DataFrame.
-     * 
-     * @param df The DataFrame to process.
-     */
-    virtual void execute(DataFrame& df) = 0;
+    DataHandler(Queue<DataFrame*> *inputQueue, Queue<DataFrame*> *outputQueue)
+        : inputQueue(inputQueue), outputQueue(outputQueue) {}
 };
 
 /**
@@ -72,113 +40,117 @@ public:
  * The rows that match the filter can be kept or removed.
  */
 class FilterHandler : public DataHandler {
-private:
-    std::string ColunmName;
-    std::any filterValue;
-    bool keep;
-
 public:
     /**
      * @brief Construct a new FilterHandler object.
      * 
-     * @param inputQueueSize Reference to the input queue.
-     * @param outputQueueSize Reference to the output queue.
+     * @param inputQueue Reference to the input queue.
+     * @param outputQueue Reference to the output queue.
      * @param ColunmName The name of the column to filter.
      * @param filterValue The value to filter.
-     * @param keep Flag to indicate if the rows that match the filter should be kept.
+     * @param op The operation to compare the column value with the filter value.
      */
-    FilterHandler(int inputQueueSize, int outputQueueSize, std::string ColunmName, std::any filterValue, bool keep)
-        : DataHandler(inputQueueSize, outputQueueSize), ColunmName(ColunmName), filterValue(filterValue), keep(keep) {}
+    FilterHandler(Queue<DataFrame*> *inputQueue, Queue<DataFrame*> *outputQueue)
+        : DataHandler(inputQueue, outputQueue) {};
 
-    // Inherited from DataHandler
-    void execute(DataFrame& df) override {
-        // Filter the DataFrame
-        df.filterByColumn(ColunmName, filterValue, keep);
+    void filterByColumn(std::string columnName, const std::any& filterValue, CompareOperation op) {
+        while(true) {
+
+            if (inputQueue->isEmpty()) {
+                break;
+            }
+
+            // Read the DataFrame from the input queue
+            DataFrame* df = inputQueue->pop();
+
+            // Filter the DataFrame
+            df->filterByColumn(columnName, filterValue, op);
+
+            // Write the DataFrame to the output queue
+            outputQueue->push(df);
+        }
     }
 };
 
-/**
- * @brief Class for joining two DataFrames.
- * 
- * This class is a subclass of DataHandler.
- * It joins two DataFrames based on a column name.
- */
-class JoinHandler : public DataHandler {
-private:
-    std::string ColunmName;
+// /**
+//  * @brief Class for joining two DataFrames.
+//  * 
+//  * This class is a subclass of DataHandler.
+//  * It joins two DataFrames based on a column name.
+//  */
+// class JoinHandler : public DataHandler {
+// public:
+//     /**
+//      * @brief Construct a new JoinHandler object.
+//      * 
+//      * @param inputQueue Reference to the input queue.
+//      * @param outputQueue Reference to the output queue.
+//      * @param ColunmName The name of the column to join.
+//      */
+//     JoinHandler(int inputQueue, int outputQueue, std::string ColunmName)
+//         : DataHandler(inputQueue, outputQueue) {}
 
-public:
-    /**
-     * @brief Construct a new JoinHandler object.
-     * 
-     * @param inputQueueSize Reference to the input queue.
-     * @param outputQueueSize Reference to the output queue.
-     * @param ColunmName The name of the column to join.
-     */
-    JoinHandler(int inputQueueSize, int outputQueueSize, std::string ColunmName)
-        : DataHandler(inputQueueSize, outputQueueSize), ColunmName(ColunmName) {}
+//     // Inherited from Da
+//     void execute(DataFrame& df) override {
+//         // Join the DataFrame
+//         df.joinByColumn(ColunmName);
+//     }
+// };
 
-    // Inherited from DataHandler
-    void execute(DataFrame& df) override {
-        // Join the DataFrame
-        df.joinByColumn(ColunmName);
-    }
-};
+// /**
+//  * @brief Class for grouping data in a DataFrame.
+//  * 
+//  * This class is a subclass of DataHandler.
+//  * It groups the data in a DataFrame based on a column name.
+//  */
+// class GroupByHandler : public DataHandler {
+// private:
+//     std::string ColunmName;
 
-/**
- * @brief Class for grouping data in a DataFrame.
- * 
- * This class is a subclass of DataHandler.
- * It groups the data in a DataFrame based on a column name.
- */
-class GroupByHandler : public DataHandler {
-private:
-    std::string ColunmName;
+// public:
+//     /**
+//      * @brief Construct a new GroupByHandler object.
+//      * 
+//      * @param inputQueue Reference to the input queue.
+//      * @param outputQueue Reference to the output queue.
+//      * @param ColunmName The name of the column to group.
+//      */
+//     GroupByHandler(int inputQueue, int outputQueue, std::string ColunmName)
+//         : DataHandler(inputQueue, outputQueue), ColunmName(ColunmName) {}
 
-public:
-    /**
-     * @brief Construct a new GroupByHandler object.
-     * 
-     * @param inputQueueSize Reference to the input queue.
-     * @param outputQueueSize Reference to the output queue.
-     * @param ColunmName The name of the column to group.
-     */
-    GroupByHandler(int inputQueueSize, int outputQueueSize, std::string ColunmName)
-        : DataHandler(inputQueueSize, outputQueueSize), ColunmName(ColunmName) {}
+//     // Inherited from DataHandler
+//     void execute(DataFrame& df) override {
+//         // Group the DataFrame
+//         df.groupByColumn(ColunmName);
+//     }
+// };
 
-    // Inherited from DataHandler
-    void execute(DataFrame& df) override {
-        // Group the DataFrame
-        df.groupByColumn(ColunmName);
-    }
-};
+// /**
+//  * @brief Class for sorting data in a DataFrame.
+//  * 
+//  * This class is a subclass of DataHandler.
+//  * It sorts the data in a DataFrame based on a column name.
+//  */
+// class SortHandler : public DataHandler {
+// private:
+//     std::string ColunmName;
 
-/**
- * @brief Class for sorting data in a DataFrame.
- * 
- * This class is a subclass of DataHandler.
- * It sorts the data in a DataFrame based on a column name.
- */
-class SortHandler : public DataHandler {
-private:
-    std::string ColunmName;
+// public:
+//     /**
+//      * @brief Construct a new SortHandler object.
+//      * 
+//      * @param inputQueue Reference to the input queue.
+//      * @param outputQueue Reference to the output queue.
+//      * @param ColunmName The name of the column to sort.
+//      */
+//     SortHandler(int inputQueue, int outputQueue, std::string ColunmName)
+//         : DataHandler(inputQueue, outputQueue), ColunmName(ColunmName) {}
 
-public:
-    /**
-     * @brief Construct a new SortHandler object.
-     * 
-     * @param inputQueueSize Reference to the input queue.
-     * @param outputQueueSize Reference to the output queue.
-     * @param ColunmName The name of the column to sort.
-     */
-    SortHandler(int inputQueueSize, int outputQueueSize, std::string ColunmName)
-        : DataHandler(inputQueueSize, outputQueueSize), ColunmName(ColunmName) {}
-
-    // Inherited from DataHandler
-    void execute(DataFrame& df) override {
-        // Sort the DataFrame
-        df.sortByColumn(ColunmName);
-    }
-};
+//     // Inherited from DataHandler
+//     void execute(DataFrame& df) override {
+//         // Sort the DataFrame
+//         df.sortByColumn(ColunmName);
+//     }
+// };
 
 #endif // DATAHANDLER_HPP
