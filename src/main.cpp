@@ -1,7 +1,7 @@
 #include <iostream>
 #include "TimerTrigger.hpp"
 #include "RequestTrigger.hpp"
-#include "Pipeline.hpp"
+#include "ETL.hpp"
 #include "Observer.hpp"
 #include <chrono>
 #include <thread>
@@ -18,13 +18,13 @@ int main() {
     const std::string txtDirPath = "../mock/mock_files/log";
     const std::string requestDirPath = "../mock/mock_files/request";
 
-    Pipeline pipeline(csvDirPath, txtDirPath, requestDirPath);
+    ETL etl(csvDirPath, txtDirPath, requestDirPath);
 
     TimerTrigger timer(std::chrono::seconds(1));
     RequestTrigger request(std::chrono::seconds(2), std::chrono::seconds(5));
 
-    timer.addObserver(std::make_shared<Pipeline>(pipeline));
-    request.addObserver(std::make_shared<Pipeline>(pipeline));
+    timer.addObserver(std::make_shared<ETL>(etl));
+    request.addObserver(std::make_shared<ETL>(etl));
 
     timer.activate();
     request.activate();
