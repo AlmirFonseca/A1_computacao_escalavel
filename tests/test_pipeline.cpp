@@ -3,6 +3,7 @@
 #include "../src/Queue.hpp"
 #include "../src/DataRepo.hpp"
 #include "../src/DataHandler.hpp"
+#include "../src/ThreadPool.hpp"
 #include <chrono>
 #include <thread>
 #include <memory>
@@ -17,6 +18,7 @@ int main(int argc, char* argv[]) {
     DataFrame* df = repo->extractData(csv_location + "1log_simulation.txt", ';');
     DataFrame* df2 = repo->extractData(csv_location + "2log_simulation.txt", ';');
 
+
     // create a queue of dataframes
     Queue<DataFrame*> queue(10);
     queue.push(df);
@@ -28,14 +30,26 @@ int main(int argc, char* argv[]) {
     // Create a handler for the queue
     FilterHandler handler(&queue, &queue2);
 
-    handler.filterByColumn("content", 137934928, CompareOperation::LESS_THAN_OR_EQUAL);
-
     Queue<DataFrame*> queue3(10);
 
     FilterHandler handler2(&queue2, &queue3);
-
-    handler2.filterByColumn("content", 121301069, CompareOperation::GREATER_THAN);
     
+    // Create a thread pool with 4 threads
+    ThreadPool pool(4);
+
+    // Add tasks to the thread pool
+    pool.addTask([&handler]() {
+        handler.filterByColumn("content", 137934928, CompareOperation::LESS_THAN_OR_EQUAL);
+    });
+
+    pool.addTask([&handler2]() {
+        handler2.filterByColumn("content", 121301069, CompareOperation::GREATER_THAN);
+    });
+
+    while (queue3.isEmpty()) {
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+    }
+
     repo->setLoadStrategy("csv");
     int i = 0;
     while (!queue3.isEmpty()) {

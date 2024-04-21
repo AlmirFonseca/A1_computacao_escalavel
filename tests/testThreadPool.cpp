@@ -18,7 +18,7 @@ void task1() {
 
 int main() {
     // Create a thread pool with 4 threads
-    ThreadPool pool(2);
+    ThreadPool pool(4);
 
     // Add tasks to the thread pool
     pool.addTask(task0, 0);
