@@ -20,21 +20,18 @@
 class ETL : public Observer {
 private:
 
-    
     std::vector<std::string> processedCSVFiles;
     std::vector<std::string> processedTXTFiles;
     std::vector<std::string> processedRequestFiles;
     std::string csvDirPath;
     std::string txtDirPath;
     std::string requestDirPath;
+    const int INPUT_MAX_QUEUE_SIZE;
+    const int OUTPUT_MAX_QUEUE_SIZE;
+    const int MAX_THREADS;
 
     // create dataRepo object that should be live throughout the pipeline
     DataRepo repo;
-
-    
-
-    // make shared pointer to the DataHandler
-    // std::shared_ptr<FilterHandler> handler = std::make_shared<FilterHandler>(10, 10, "id", '1', CompareOperation::EQUAL);
 
     bool isRegularFile(const std::string& path) {
         struct stat statbuf;
@@ -92,13 +89,36 @@ private:
 
     // get the csv files from the directory
     std::vector<std::string> getCSVFiles(const std::string& dirPath) {
-        std::vector<std::string> csvFiles = {dirPath+"/products.csv", dirPath+"/orders.csv", dirPath+"/customers.csv"};
+        std::vector<std::string> csvFiles = {dirPath+"/products.csv", dirPath+"/purchase_orders.csv", dirPath+"/stock", dirPath+"/users.csv"};
         return csvFiles;
     }
 
+    void procccessCsvPipeline(){
+        std::vector<std::string> updatedCSVFiles = getCSVFiles(csvDirPath);
+        std::vector<DataFrame> dataframesCSV = processFiles(updatedCSVFiles, processedCSVFiles);
+
+        // apply filter to the dataframes
+
+    }
+
+    void procccessTxtPipeline(){
+        std::vector<std::string> updatedTXTFiles = monitorDirectory(txtDirPath, processedTXTFiles);
+        std::vector<DataFrame> dataframesTXT = processFiles(updatedTXTFiles, processedTXTFiles);
+
+        // apply filter to the dataframer, first create a datahandler object which will filter by type == "User"
+        FilterHandler filterHandler(INPUT_MAX_QUEUE_SIZE, OUTPUT_MAX_QUEUE_SIZE, "type", "User", CompareOperation::EQUAL);
+        FilterHandler filterHandler2(INPUT_MAX_QUEUE_SIZE, OUTPUT_MAX_QUEUE_SIZE, "extra_1", "ZOOM", CompareOperation::EQUAL);
+        
+    }
+
+    void processRequestPipeline(){
+        std::vector<std::string> updatedRequestFiles = monitorDirectory(requestDirPath, processedRequestFiles);
+        std::vector<DataFrame> dataframesRequest = processFiles(updatedRequestFiles, processedRequestFiles);
+    }
+
 public:
-    ETL(const std::string& csvDirectory, const std::string& txtDirectory, const std::string& requestDirectory) 
-        : csvDirPath(csvDirectory), txtDirPath(txtDirectory), requestDirPath(requestDirectory) {
+    ETL(const std::string& csvDirectory, const std::string& txtDirectory, const std::string& requestDirectory, const int INPUT_MAX_QUEUE_SIZE, const int OUTPUT_MAX_QUEUE_SIZE, const int MAX_THREADS) 
+        : csvDirPath(csvDirectory), txtDirPath(txtDirectory), requestDirPath(requestDirectory), INPUT_MAX_QUEUE_SIZE(INPUT_MAX_QUEUE_SIZE), OUTPUT_MAX_QUEUE_SIZE(OUTPUT_MAX_QUEUE_SIZE), MAX_THREADS(MAX_THREADS) {
         std::cout << "ETL created!" << std::endl;
     }
 
@@ -109,14 +129,17 @@ public:
     // Interface for notification (update) from triggers
     void updateOnTimeTrigger() override {
 
-        // get all the updated csv files
-        std::vector<std::string> updatedCSVFiles = getCSVFiles(csvDirPath);
-        std::vector<DataFrame> dataframesCSV = processFiles(updatedCSVFiles, processedCSVFiles);
+        // procccessCsvPipeline();
+        // create a thread for the csv pipeline
+        std::thread csvThread(&ETL::procccessCsvPipeline, this);
+        
+        // procccessTxtPipeline();
+        // create a thread for the txt pipeline
+        std::thread txtThread(&ETL::procccessTxtPipeline, this);
 
-
-        // LOG Monitoring
-        std::vector<std::string> newTXTFiles = monitorDirectory(txtDirPath, processedTXTFiles);
-        std::vector<DataFrame> dataframesTXT = processFiles(newTXTFiles, processedTXTFiles);
+        // join the threads
+        csvThread.join();
+        txtThread.join();
 
         // sleep
         std::this_thread::sleep_for(std::chrono::seconds(1));
@@ -125,9 +148,9 @@ public:
 
     // Interface for handling request from triggers
     void updateOnRequestTrigger() override {
-        std::vector<std::string> newRequestFiles = monitorDirectory(requestDirPath, processedRequestFiles);
-        std::vector<DataFrame> dataframesRequest = processFiles(newRequestFiles, processedRequestFiles);
-
+     
+        processRequestPipeline();   
+        
         // sleep
         std::this_thread::sleep_for(std::chrono::seconds(1));
         std::cout << "Request-triggered Pipeline ended!" << std::endl;

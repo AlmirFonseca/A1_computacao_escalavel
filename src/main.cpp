@@ -9,16 +9,29 @@
 
 using namespace std;
 
-int main() {
-
-    // print a message
-    cout << "Hello, World!" << endl;
+int main(int argc, char* argv[]) {
 
     const std::string csvDirPath = "../mock/mock_files/csv";
     const std::string txtDirPath = "../mock/mock_files/log";
     const std::string requestDirPath = "../mock/mock_files/request";
 
-    ETL etl(csvDirPath, txtDirPath, requestDirPath);
+    const int DEFAULT_INPUT_QUEUE_SIZE = 100;
+    const int DEFAULT_OUTPUT_QUEUE_SIZE = 100;
+    const int DEFAULT_MAX_THREADS = 10;
+
+    // Check if arguments are provided
+    int inputQueueSize = DEFAULT_INPUT_QUEUE_SIZE;
+    int outputQueueSize = DEFAULT_OUTPUT_QUEUE_SIZE;
+    int maxThreads = DEFAULT_MAX_THREADS;
+
+    if (argc >= 4) {
+        // Assuming arguments are provided in the order: inputQueueSize, outputQueueSize, maxThreads
+        inputQueueSize = std::stoi(argv[1]);
+        outputQueueSize = std::stoi(argv[2]);
+        maxThreads = std::stoi(argv[3]);
+    }
+
+    ETL etl(csvDirPath, txtDirPath, requestDirPath, DEFAULT_INPUT_QUEUE_SIZE, DEFAULT_OUTPUT_QUEUE_SIZE, DEFAULT_MAX_THREADS);
 
     TimerTrigger timer(std::chrono::seconds(1));
     RequestTrigger request(std::chrono::seconds(2), std::chrono::seconds(5));
