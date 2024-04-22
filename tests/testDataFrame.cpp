@@ -150,8 +150,7 @@ int main() {
 
         // Test the deep copy method
         cout << "Testing the deep copy method" << endl;
-        DataFrame dfCopy;
-        dfCopy.deepCopy(df);
+        DataFrame dfCopy = DataFrame::deepCopy(df, true);
 
         cout << "Original DataFrame" << endl;
         df.print();
@@ -177,8 +176,7 @@ int main() {
         cout << endl;
 
         cout << "Test a copy without keeping the data" << endl;
-        DataFrame dfCopy2;
-        dfCopy2.deepCopy(df, false);
+        DataFrame dfCopy2 = DataFrame::deepCopy(df, false);
         dfCopy2.printColumnTypes();
         cout << "Original DataFrame" << endl;
         df.print();
@@ -230,6 +228,26 @@ int main() {
         // Test the sum method
         cout << "\nSum of Score: " << any_cast<float>(plainDataFrame.sum("Score")) << endl;
 
+        // Test the valueCounts method
+        cout << "\nOriginal Dataframe: " << endl;
+        DataFrame dfForCounting({"ID", "Age"});
+        dfForCounting.addRow(1, 20);
+        dfForCounting.addRow(2, 22);
+        dfForCounting.addRow(3, 20);
+        dfForCounting.addRow(4, 22);
+        dfForCounting.addRow(5, 20);
+        dfForCounting.addRow(6, 22);
+        dfForCounting.addRow(7, 20);
+        dfForCounting.addRow(8, 21);
+        dfForCounting.addRow(9, 21);
+        dfForCounting.addRow(10, 21);
+        dfForCounting.addRow(11, 21);
+        dfForCounting.addRow(12, 21);
+        dfForCounting.print();
+
+        cout << "Value counts of Name: " << endl;
+        DataFrame valueCounts = dfForCounting.valueCounts("Age");
+        valueCounts.print();
 
 
 

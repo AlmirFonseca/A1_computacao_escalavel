@@ -371,8 +371,7 @@ public:
         }
 
         // Instantiate a new dataframe to store the merged result (assuming that both dataframes have the same column names)
-        DataFrame* merged = new DataFrame();
-        merged->deepCopy(df1, false); // Copy the column names/types but not the data
+        DataFrame merged = deepCopy(df1, false); // Copy the column names/types but not the data
 
         // Assuming that both dataframe has the column ordered, just merge the data
         size_t i = 0, j = 0;
@@ -384,11 +383,11 @@ public:
                 
                 if (val1 <= val2) {
                     // Clone the value of each column in the row
-                    for (const auto& colName : df1.columnNames) merged->cloneValue(colName, df1, i, colName);
+                    for (const auto& colName : df1.columnNames) merged.cloneValue(colName, df1, i, colName);
                     i++;
                 } else {
                     // Clone the value of each column in the row
-                    for (const auto& colName : df2.columnNames) merged->cloneValue(colName, df2, j, colName);
+                    for (const auto& colName : df2.columnNames) merged.cloneValue(colName, df2, j, colName);
                     j++;
                 }
             } catch (const bad_any_cast& e) {
@@ -400,20 +399,20 @@ public:
         // Append remaining rows from either dataframe
         while (i < df1.rowCount) {
             // Clone the value of each column in the row
-            for (const auto& colName : df1.columnNames) merged->cloneValue(colName, df1, i, colName);
+            for (const auto& colName : df1.columnNames) merged.cloneValue(colName, df1, i, colName);
             i++;
         }
 
         while (j < df2.rowCount) {
             // Clone the value of each column in the row
-            for (const auto& colName : df2.columnNames) merged->cloneValue(colName, df2, j, colName);
+            for (const auto& colName : df2.columnNames) merged.cloneValue(colName, df2, j, colName);
             j++;
         }
 
         // Update the row count
-        merged->rowCount = df1.rowCount + df2.rowCount;
+        merged.rowCount = df1.rowCount + df2.rowCount;
 
-        return *merged;
+        return merged;
     }
 
     /**
@@ -497,7 +496,7 @@ public:
      * @param other The DataFrame to be copied.
      * @param copyData A flag to indicate whether to copy the data as well.
      */
-    void deepCopy(const DataFrame& other, bool copyData = true) {
+    void deepCopyImpl(const DataFrame& other, bool copyData = true) {
         columnNames = other.columnNames; // Copy column names
         columns.clear(); // Clear existing columns if any
 
@@ -508,6 +507,13 @@ public:
             columns[name] = other.columns.at(name)->clone();
             if (!copyData) columns[name]->clear();
         }
+    }
+
+    // Overload by returning a dataframe
+    static DataFrame deepCopy(const DataFrame& other, bool copyData = true) {
+        DataFrame result;
+        result.deepCopyImpl(other, copyData);
+        return result;
     }
 
     /**
@@ -554,8 +560,7 @@ public:
      */
     static DataFrame concat(const DataFrame& df1, const DataFrame& df2) {
         // Deep copy the first dataframe
-        DataFrame result;
-        result.deepCopy(df1);
+        DataFrame result = deepCopy(df1);
 
         // Apply the concat method to the copied dataframe
         result.concat(df2);
@@ -804,6 +809,51 @@ public:
     // Overload by name
     any sum(const string& columnName) {
         return sum(getColumnIndex(columnName));
+    }
+
+    /**
+     * @brief Count the occurrences of each value in a column.
+     * 
+     * This method counts the occurrences of each value in a column and returns the result as a new DataFrame.
+     * 
+     * @param columnIndex The index of the column to count the occurrences for.
+     * @return A DataFrame containing the value counts.
+     * @throws runtime_error If the column index is out of bounds.
+     */
+    DataFrame valueCounts(size_t columnIndex) {
+        if (columnIndex >= columnNames.size()) {
+            throw runtime_error("Column index out of bounds.");
+        }
+
+        // Get the column name using the index
+        string columnName = columnNames[columnIndex];
+        auto columnSeries = columns[columnName];
+
+        // Map to store value counts
+        map<string, int> valueCountMap;
+
+        // Iterate through the column and count the occurrences of each value
+        for (size_t i = 0; i < rowCount; ++i) {
+            string value = columnSeries->getStringAtIndex(i);
+            if (valueCountMap.find(value) == valueCountMap.end()) {
+                valueCountMap[value] = 1;
+            } else {
+                valueCountMap[value]++;
+            }
+        }
+
+        // Create a new DataFrame to store the value counts
+        DataFrame countDataFrame({"Value", "Count"});
+        for (const auto& [value, count] : valueCountMap) {
+            countDataFrame.addRow(value, count);
+        }
+
+        return countDataFrame;
+    }
+
+    // Overload by name
+    DataFrame valueCounts(const string& columnName) {
+        return valueCounts(getColumnIndex(columnName));
     }
 };
 
