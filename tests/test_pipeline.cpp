@@ -140,18 +140,16 @@ int main(int argc, char* argv[]) {
         while (!outputQueuesPipeline[i]->isEmpty())
         {
             DataFrame* df = outputQueuesPipeline[i]->pop();
-            if (i < 2){
-                df_main->concat(*df);
+
+            // If the dataframe has only one column, sum the values
+            if (df->getColumnCount() == 1){
+                *df_main = DataFrame::mergeAndSum(*df_main, *df, "", "Count");
             }
+
+            // If the dataframe has two columns, merge the dataframes and sum the values
             else{
                 *df_main = DataFrame::mergeAndSum(*df_main, *df, "Value", "Count");
             }
-        }
-        if (i < 2){
-            int sum = any_cast<int>(df_main->sum("count"));
-            delete df_main;
-            df_main = new DataFrame({"sum"});
-            df_main->addRow(sum);
         }
         string filename = "output" + to_string(i+1) + ".csv";
         repo->loadData(*df_main, filename);
