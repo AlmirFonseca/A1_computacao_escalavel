@@ -319,15 +319,19 @@ class Simulation:
         # add cycle to the beginning of the base name of the http request file
         request_cycle = f"{self.folder_name}/{self.subfolder_http_request}/{self.cycle}{self.request_file_name}"
 
-        log_flow_colunms = ["timestamp", "type", "content", "extra_1", "extra_2"]
-        self.log_flow.insert(0, ";".join(log_flow_colunms) + "\n")
+        # self.log_flow.insert(0, ";".join(log_flow_colunms) + "\n")
         
-        first_half = self.user_flow_report[:len(self.user_flow_report)//2]
+        first_half = self.user_flow_report[len(self.user_flow_report)//2:]
+        self.user_flow_report = self.user_flow_report[:len(self.user_flow_report)//2]
 
-        self.user_flow_report = self.user_flow_report[len(self.user_flow_report)//2:]
-        self.log_flow.insert(0, ";".join(log_flow_colunms) + "\n")
+        log_flow_colunms = ["timestamp", "type", "content", "extra_1", "extra_2"]
+        self.user_flow_report.insert(0, ";".join(log_flow_colunms) + "\n")
 
-        self.log_flow.extend(first_half)
+
+        first_half.insert(0, ";".join(log_flow_colunms) + "\n")
+        # add to the beginning of the log_flow the first half of the user_flow_report
+        self.log_flow = first_half + self.log_flow
+
         self.write_log(log_cycle)
         self.log_flow = []
 
