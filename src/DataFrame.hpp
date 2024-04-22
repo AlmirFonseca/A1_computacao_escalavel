@@ -588,36 +588,15 @@ public:
         }
 
         // For the first row, create the appropriate Series instance
-        if (rowCount == 0) {
-
-            // Get the correct type for the Series
-            char dataType = getDataType(convertToString(first));
-
-            // Create the appropriate Series instance
-            if (dataType == 'i') columns[columnNames[index]] = make_shared<Series<int>>(columnNames[index]);
-            else if (dataType == 'x') columns[columnNames[index]] = make_shared<Series<long long>>(columnNames[index]);
-            else if (dataType == 'f') columns[columnNames[index]] = make_shared<Series<float>>(columnNames[index]);
-            else if (dataType == 'c') columns[columnNames[index]] = make_shared<Series<char>>(columnNames[index]);
-            else columns[columnNames[index]] = make_shared<Series<T>>(columnNames[index]);
-        }
+        if (rowCount == 0) columns[columnNames[index]] = make_shared<Series<T>>(columnNames[index]);
 
         // Add the value to the appropriate Series
         try {
             auto& series = columns[columnNames[index]];
 
-            // Add the value to the appropriate Series, casting it appropriately
+            // Add the value to the Series, casting it appropriately
             try {
-                if (series->type() == typeid(int)) {
-                    series->add(stoi(convertToString(first)));
-                } else if (series->type() == typeid(long long)) {
-                    series->add(stoll(convertToString(first)));
-                } else if (series->type() == typeid(float)) {
-                    series->add(stof(convertToString(first)));
-                } else if (series->type() == typeid(char)) {
-                    series->add(convertToString(first)[0]);
-                } else {
-                    series->add(first);
-                }
+                series->add(first);
             } catch (const std::exception &e) {
                 cout << "Error while casting and adding value " + convertToString(first) + " to Series: " << e.what() << endl;
                 throw runtime_error("Type mismatch error: Unable to add value to Series.");
@@ -649,18 +628,7 @@ public:
         }
 
         // For the first row, create the appropriate Series instance
-        if (rowCount == 0) {
-
-            // Get the correct type for the Series
-            char dataType = getDataType(convertToString(first));
-
-            // Create the appropriate Series instance
-            if (dataType == 'i') columns[columnNames[index]] = make_shared<Series<int>>(columnNames[index]);
-            else if (dataType == 'x') columns[columnNames[index]] = make_shared<Series<long long>>(columnNames[index]);
-            else if (dataType == 'f') columns[columnNames[index]] = make_shared<Series<float>>(columnNames[index]);
-            else if (dataType == 'c') columns[columnNames[index]] = make_shared<Series<char>>(columnNames[index]);
-            else columns[columnNames[index]] = make_shared<Series<T>>(columnNames[index]);
-        }
+        if (rowCount == 0) columns[columnNames[index]] = make_shared<Series<T>>(columnNames[index]);
 
         // Add the value to the appropriate Series
         try {
@@ -668,17 +636,7 @@ public:
 
             // Add the value to the Series, casting it appropriately
             try {
-                if (series->type() == typeid(int)) {
-                    series->add(stoi(convertToString(first)));
-                } else if (series->type() == typeid(long long)) {
-                    series->add(stoll(convertToString(first)));
-                } else if (series->type() == typeid(float)) {
-                    series->add(stof(convertToString(first)));
-                } else if (series->type() == typeid(char)) {
-                    series->add(convertToString(first)[0]);
-                } else {
-                    series->add(first);
-                }
+                series->add(first);
             } catch (const std::exception &e) {
                 cout << "Error while casting and adding value " + convertToString(first) + " to Series: " << e.what() << endl;
                 throw runtime_error("Type mismatch error: Unable to add value to Series.");
@@ -688,6 +646,15 @@ public:
         }
     }
 
+    /**
+     * @brief Get the index of a column based on the column name.
+     * 
+     * This method returns the index of a column based on the column name.
+     * 
+     * @param columnName The name of the column.
+     * @return The index of the column.
+     * @throws runtime_error If the column is not found.
+     */
     size_t getColumnIndex(const string& columnName) {
         for (size_t i = 0; i < columnNames.size(); i++) {
             if (columnNames[i] == columnName) {
@@ -732,62 +699,6 @@ public:
         return columnNames[columnIndex];
     }
 
-    /**
-     * @brief Check if a string has all numeric characters.
-     * 
-     * This method checks if a string has all numeric characters.
-     * 
-     * @param str The input string.
-     * @return true if the string has all numeric characters, false otherwise.
-     */
-    bool isNumeric(const std::string& str) {
-        return !str.empty() && std::find_if(str.begin(),
-                                            str.end(), [](unsigned char c) { return !std::isdigit(c); }) == str.end();
-    }
-
-    /**
-     * @brief Check if a string is a float.
-     * 
-     * This method checks if a string is a float.
-     * 
-     * @param str The input string.
-     * @return true if the string is a float, false otherwise.
-     */
-    bool isFloat(const std::string& str) {
-        return !str.empty() && std::count(str.begin(), str.end(), '.') == 1 &&
-            std::all_of(str.begin(), str.end(), [](unsigned char c) { return std::isdigit(c) || c == '.'; });
-    }
-
-    /**
-     * @brief Infer the data type based on the input string.
-     * 
-     * This method infers the data type based on the input string.
-     * The method checks if the string is a int, long long, float, char or string
-     * 
-     * @param input The input string.
-     * @return The inferred data type.
-     */
-    char getDataType(string input) {
-        char dataType = '?';
-
-        // Check if the string is a number
-        if (isNumeric(input)) {
-            // Check if is a long or a commom int
-            try {
-                stoi(input);
-                dataType = 'i';
-            } catch (const std::out_of_range& e) {
-                dataType = 'x';
-            }
-        } else if (isFloat(input)) {
-            dataType = 'f';
-        } else {
-            // Check if the string is either a char or a string
-            if (input.length() == 1) dataType = 'c';
-            else dataType = 's';                
-        }
-        return dataType;
-    }
 
     /**
      * @brief Calculate the sum of a column in the DataFrame.
@@ -972,6 +883,30 @@ public:
         }
 
         return result;
+    }
+
+    /**
+     * @brief Return the type of a column based on the column index.
+     *
+     * This method returns the type of a column based on the column index.
+     *
+     * @param columnIndex The index of the column.
+     * @return The type of the column.
+     * @throws runtime_error If the column index is out of bounds.
+     */
+    const std::type_info& getColumnType(int columnIndex) {
+
+        // Check if the column index is out of bounds
+        if (columnIndex >= columnNames.size()) {
+            throw runtime_error("Index out of bounds.");
+        }
+
+        // Check if there is any row in the dataframe
+        if (rowCount == 0) {
+            return typeid(void);
+        } else {
+            return columns[columnNames[columnIndex]]->type();
+        }
     }
 };
 

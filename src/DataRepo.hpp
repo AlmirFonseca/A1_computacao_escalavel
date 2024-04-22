@@ -7,6 +7,9 @@
 #include <fstream>
 #include <sstream>
 #include <vector>
+#include <any>
+#include <typeinfo>
+
 
 using namespace std;
 
@@ -18,6 +21,63 @@ using namespace std;
  * This class is an abstract class that defines the interface for the extraction and loading strategies.
 */
 class DataRepoStrategy {
+private:
+    /**
+     * @brief Check if a string has all numeric characters.
+     * 
+     * This method checks if a string has all numeric characters.
+     * 
+     * @param str The input string.
+     * @return true if the string has all numeric characters, false otherwise.
+     */
+    bool isNumeric(const std::string& str) {
+        return !str.empty() && std::find_if(str.begin(),
+                                            str.end(), [](unsigned char c) { return !std::isdigit(c); }) == str.end();
+    }
+
+    /**
+     * @brief Check if a string is a float.
+     * 
+     * This method checks if a string is a float.
+     * 
+     * @param str The input string.
+     * @return true if the string is a float, false otherwise.
+     */
+    bool isFloat(const std::string& str) {
+        return !str.empty() && std::count(str.begin(), str.end(), '.') == 1 &&
+            std::all_of(str.begin(), str.end(), [](unsigned char c) { return std::isdigit(c) || c == '.'; });
+    }
+
+    /**
+     * @brief Infer the data type based on the input string.
+     * 
+     * This method infers the data type based on the input string.
+     * The method checks if the string is a int, long long, float, char or string
+     * 
+     * @param input The input string.
+     * @return The inferred data type.
+     */
+    const std::type_info& getDataType(string input) {
+        const std::type_info& dataType = typeid(void);
+
+        // Check if the string is a number
+        if (isNumeric(input)) {
+            // Check if is a long or a commom int
+            try {
+                stoi(input);
+                return typeid(int);
+            } catch (const std::out_of_range& e) {
+                return typeid(long long);
+            }
+        } else if (isFloat(input)) {
+            return typeid(float);
+        } else {
+            // Check if the string is either a char or a string
+            if (input.length() == 1) return typeid(char);
+            else return typeid(string);                
+        }
+    }
+    
 public:
     /**
      * @brief Extracts data from the source.
@@ -76,16 +136,28 @@ public:
         // Create a stringstream from line
         stringstream ss(line);
 
-        // Read each column data into the array
-        for (int i = 0; i < df.getColumnCount(); i++) {
-            string col;
-            getline(ss, col, delimiter);
-            
-            if (col == "") {
-                emptyCount++;   
-            }
+        printf("Line: %s\n", line.c_str());
 
-            df.addColumnValue(i, col);
+        int numColumns = df.getColumnCount();
+
+        // Read each column data into the array
+        for (int i = 0; i < numColumns; i++) {
+            string col_value;
+            getline(ss, col_value, delimiter);
+            
+            if (col_value == "") emptyCount++;
+            
+            // Infer the data type of the column if the data type is not known
+            const type_info& colType = (df.getColumnType(i) == typeid(void)) ? getDataType(col_value) : df.getColumnType(i);
+
+            // Cast the value according to the data type and add it to the DataFrame
+            if (colType == typeid(int)) df.addColumnValue(i, stoi(col_value));
+            else if (colType == typeid(long long)) df.addColumnValue(i, stoll(col_value));
+            else if (colType == typeid(float)) df.addColumnValue(i, stof(col_value));
+            else if (colType == typeid(char)) df.addColumnValue(i, col_value[0]);
+            else if (colType == typeid(string)) df.addColumnValue(i, convertToString(col_value));
+            else df.addColumnValue(i, col_value);
+    
         }
 
         // Increase the dataframe row count
