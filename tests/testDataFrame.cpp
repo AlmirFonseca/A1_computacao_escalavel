@@ -76,25 +76,25 @@ int main() {
         // cout << endl;
         // df.addRow(8, 100.0, string("Off"), 'A', 0);
 
-        DataFrame dfAge({"Age", "Salary"});
-    
+        DataFrame dfAge({"Age", "Salary", "Name"});
+        
         // Adding some rows to the DataFrame
-        dfAge.addRow(25, 50000);
-        dfAge.addRow(30, 60000);
-        dfAge.addRow(35, 70000);
-        dfAge.addRow(40, 80000);
-        dfAge.addRow(45, 90000);
-        dfAge.addRow(50, 100000);
-        dfAge.addRow(55, 110000);
-        dfAge.addRow(60, 120000);
-        dfAge.addRow(65, 130000);
-        dfAge.addRow(70, 140000);
-        dfAge.addRow(75, 150000);
-        dfAge.addRow(80, 160000);
-        dfAge.addRow(85, 170000);
-        dfAge.addRow(90, 180000);
-        dfAge.addRow(95, 190000);
-        dfAge.addRow(100, 200000);
+        dfAge.addRow(25, 50000, "John");
+        dfAge.addRow(30, 60000, "Alice");
+        dfAge.addRow(35, 70000, "Bob");
+        dfAge.addRow(40, 80000, "Charlie");
+        dfAge.addRow(45, 90000, "David");
+        dfAge.addRow(50, 100000, "Emma");
+        dfAge.addRow(55, 110000, "Frank");
+        dfAge.addRow(60, 120000, "Grace");
+        dfAge.addRow(65, 130000, "Henry");
+        dfAge.addRow(70, 140000, "Isabella");
+        dfAge.addRow(75, 150000, "Jack");
+        dfAge.addRow(80, 160000, "Kate");
+        dfAge.addRow(85, 170000, "Liam");
+        dfAge.addRow(90, 180000, "Mia");
+        dfAge.addRow(95, 190000, "Noah");
+        dfAge.addRow(100, 200000, "Olivia");
 
         cout << "Original DataFrame (before filtering)" << endl;
         dfAge.print();
@@ -107,6 +107,11 @@ int main() {
         // Filter rows where Salary is greater than 100000
         dfAge.filterByColumn("Salary", 100000, CompareOperation::LESS_THAN);
         cout << "DataFrame after filtering (Salary < 100000)" << endl;
+        dfAge.print();
+
+        // Filter rows where Name is not "Bob"
+        dfAge.filterByColumn("Name", "Bob", CompareOperation::NOT_EQUAL);
+        cout << "DataFrame after filtering (Name != Bob)" << endl;
         dfAge.print();
 
         // Create two DataFrames with same column names
