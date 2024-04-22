@@ -246,8 +246,11 @@ class Simulation:
                 dictionary_products[product] = dictionary_products.get(product, 0) + 1
             for product, quantity in dictionary_products.items():
                 purchase_order = self.__generate_purchase_order(user, product, quantity)
-                mesage = f";Audit;{user};created a purchase order for Product: {purchase_order.product_id} Quantity: {purchase_order.quantity}.\n"
-                self.__add_message_to_log(mesage)
+                
+                for _ in range(quantity):
+                    mesage = f";Audit;{user};{purchase_order.product_id}\n"
+                    self.__add_message_to_log(mesage)
+
                 self.__decrease_stock(product, quantity)
         add_purchase_order()
             
