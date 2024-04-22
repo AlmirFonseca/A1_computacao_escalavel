@@ -359,7 +359,7 @@ class DataRepo : public Observer {
 private:
     string extractStrategy; /**< The extraction strategy for the data repository. */
     string loadStrategy; /**< The loading strategy for the data repository. */
-    DataFrame* extractDf; /**< The DataFrame object containing the extracted data. */
+    DataFrame** extractDf; /**< The DataFrame object containing the extracted data. */
     string loadFileName; /**< The name of the file to load the data into. */
 
 public:
@@ -436,7 +436,7 @@ public:
         cout << "Data repository loading strategy: " << loadStrategy << endl;
     }
 
-    void setExtractDf(DataFrame* df) {
+    void setExtractDf(DataFrame** df) {
         this->extractDf = df;
     }
 
@@ -446,7 +446,13 @@ public:
 
     // Interface for notification (update) from triggers
     void updateOnTimeTrigger() override {
-        loadData(*extractDf, loadFileName);
+        if (*extractDf == nullptr) {
+            cout << "No data to load." << endl;
+            return;
+        }
+        (*extractDf)->print();
+        loadData(**extractDf, loadFileName);
+        *extractDf = nullptr;
     }
 
     // Interface for handling request from triggers

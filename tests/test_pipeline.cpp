@@ -6,25 +6,26 @@
 #include "../src/ThreadPool.hpp"
 #include <chrono>
 #include <thread>
+#include <mutex>
 #include <memory>
 
 using namespace std;
 
 
 int main(int argc, char* argv[]) {
-    DataRepo* repo = new DataRepo();
-    repo->setExtractionStrategy("txt");
+    DataRepo* repoRead = new DataRepo();
+    repoRead->setExtractionStrategy("txt");
     string csv_location = "../mock/mock_files/log/";
 
     // Create a thread pool with 4 threads
-    ThreadPool pool(4);
+    ThreadPool pool(8);
 
     // create a queue of dataframes
     Queue<DataFrame*> queueInDC1(10);
     Queue<DataFrame*> queueInDC2(10);
 
     for (int i = 1; i <= 10; i++) {
-        DataFrame* df = repo->extractData(csv_location + to_string(i) + "log_simulation.txt", ';');
+        DataFrame* df = repoRead->extractData(csv_location + to_string(i) + "log_simulation.txt", ';');
         queueInDC1.push(df);
 
         // deep copy of the dataframe
@@ -129,42 +130,116 @@ int main(int argc, char* argv[]) {
 
     vector<Queue<DataFrame*>*> outputQueuesPipeline = {&queueCountView, &queueCountBuy, &queueProdView, &queueBuyRanking, &queueViewRanking};
 
-    repo->setLoadStrategy("csv");
+    repoRead->setLoadStrategy("csv");
+
+    DataFrame* result_dataframes[5] = {nullptr, nullptr, nullptr, nullptr, nullptr};
 
     for (int i = 0; i < 5; i++) {
-        while (outputQueuesPipeline[i]->isEmpty())
+        if (outputQueuesPipeline[i]->isEmpty())
         {
-            std::this_thread::sleep_for(std::chrono::seconds(1));
+            continue;
         }
-        DataFrame* df_main = outputQueuesPipeline[i]->pop();
+        result_dataframes[i] = outputQueuesPipeline[i]->pop();
         while (!outputQueuesPipeline[i]->isEmpty())
         {
             DataFrame* df = outputQueuesPipeline[i]->pop();
 
             // If the dataframe has only one column, sum the values
             if (df->getColumnCount() == 1){
-                *df_main = DataFrame::mergeAndSum(*df_main, *df, "", "Count");
+                *result_dataframes[i] = DataFrame::mergeAndSum(*result_dataframes[i], *df, "", "Count");
             }
 
             // If the dataframe has two columns, merge the dataframes and sum the values
             else{
-                *df_main = DataFrame::mergeAndSum(*df_main, *df, "Value", "Count");
+                *result_dataframes[i] = DataFrame::mergeAndSum(*result_dataframes[i], *df, "Value", "Count");
             }
+
         }
-        string filename = "output" + to_string(i+1) + ".csv";
-        repo->loadData(*df_main, filename);
+        // string filename = "output" + to_string(i+1) + ".csv";
+        // repoRead->loadData(result_dataframes[i], filename);
     }
     
-    // Trigger* trigger = new TimerTrigger(std::chrono::seconds(5));
-    // trigger->addObserver(std::make_shared<DataRepo>(*repo));
+    for (int i = 0; i < 5; i++) {
+        DataFrame** result_dataframe = &result_dataframes[i];
+        Queue<DataFrame*>* outputQueue = outputQueuesPipeline[i];
+        pool.addTask([outputQueue, result_dataframe]() {
+            if (outputQueue->isEmpty())
+            {
+                return;
+            }
+            if (*result_dataframe == nullptr)
+            {
+                *result_dataframe = outputQueue->pop();
+            }
+            if (!outputQueue->isEmpty())
+            {
+                DataFrame* df = outputQueue->pop();
+                // If the dataframe has only one column, sum the values
+                if (df->getColumnCount() == 1){
+                    **result_dataframe = DataFrame::mergeAndSum(**result_dataframe, *df, "", "Count");
+                }
 
-    // trigger->activate();
+                // If the dataframe has two columns, merge the dataframes and sum the values
+                else{
+                    **result_dataframe = DataFrame::mergeAndSum(**result_dataframe, *df, "Value", "Count");
+                }
 
-    // while (true) {
-    //     std::this_thread::sleep_for(std::chrono::seconds(1));
-    // }
+            }
+        });
+    }
 
-    // trigger->deactivate();
+    DataRepo* repoCountView = new DataRepo();
+    repoCountView->setExtractDf(&result_dataframes[0]);
+    repoCountView->setLoadStrategy("csv");
+    repoCountView->setLoadFileName("CountView.csv");
+
+    DataRepo* repoCountBuy = new DataRepo();
+    repoCountBuy->setExtractDf(&result_dataframes[1]);
+    repoCountBuy->setLoadStrategy("csv");
+    repoCountBuy->setLoadFileName("CountBuy.csv");
+
+    DataRepo* repoProdView = new DataRepo();
+    repoProdView->setExtractDf(&result_dataframes[2]);
+    repoProdView->setLoadStrategy("csv");
+    repoProdView->setLoadFileName("ProdView.csv");
+
+    DataRepo* repoBuyRanking = new DataRepo();
+    repoBuyRanking->setExtractDf(&result_dataframes[3]);
+    repoBuyRanking->setLoadStrategy("csv");
+    repoBuyRanking->setLoadFileName("BuyRanking.csv");
+
+    DataRepo* repoViewRanking = new DataRepo();
+    repoViewRanking->setExtractDf(&result_dataframes[4]);
+    repoViewRanking->setLoadStrategy("csv");
+    repoViewRanking->setLoadFileName("ViewRanking.csv");
+
+
+    Trigger* triggerMin = new TimerTrigger(std::chrono::seconds(1));
+    triggerMin->addObserver(std::make_shared<DataRepo>(*repoCountView));
+    triggerMin->addObserver(std::make_shared<DataRepo>(*repoCountBuy));
+    triggerMin->addObserver(std::make_shared<DataRepo>(*repoProdView));
+
+    Trigger* triggerHour = new TimerTrigger(std::chrono::seconds(2));
+    triggerHour->addObserver(std::make_shared<DataRepo>(*repoBuyRanking));
+    triggerHour->addObserver(std::make_shared<DataRepo>(*repoViewRanking));
+
+    triggerMin->activate();
+    triggerHour->activate();
+
+    // Simulate the arrival of new dataframes
+    for (int i = 11; i < 21; i++) {
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+
+        DataFrame* df = repoRead->extractData(csv_location + to_string(i) + "log_simulation.txt", ';');
+        queueInDC1.push(df);
+    }
+
+    while (true) {
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+    }
+
+    triggerMin->deactivate();
+    triggerHour->deactivate();
 
     return 0;
 }
