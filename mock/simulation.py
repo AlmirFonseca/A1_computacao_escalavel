@@ -318,9 +318,13 @@ class Simulation:
 
         log_flow_colunms = ["timestamp", "type", "content", "extra_1", "extra_2"]
         self.log_flow.insert(0, ";".join(log_flow_colunms) + "\n")
-        # add use_flow_report list to the beginning of the base name of the log file
-        self.log_flow.extend(self.user_flow_report)
+        
+        first_half = self.user_flow_report[:len(self.user_flow_report)//2]
 
+        self.user_flow_report = self.user_flow_report[len(self.user_flow_report)//2:]
+        self.log_flow.insert(0, ";".join(log_flow_colunms) + "\n")
+
+        self.log_flow.extend(first_half)
         self.write_log(log_cycle)
         self.log_flow = []
 
@@ -346,9 +350,9 @@ class Simulation:
             with open(self.csv_complete_path[3], 'a') as file:
                 # acquire lock and write to the file, then release the lock
                 writer = csv.writer(file, delimiter=';', lineterminator='\n')
-                if self.acquire_lock(self.csv_complete_path[3]):
-                    writer.writerows(content)
-                    self.release_lock(self.csv_complete_path[3])
+                # if self.acquire_lock(self.csv_complete_path[3]):
+                writer.writerows(content)
+                # self.release_lock(self.csv_complete_path[3])
 
     def rewrite_full_stock_to_csv(self):
         if self.new_stock_decreases:
@@ -358,9 +362,9 @@ class Simulation:
             content.insert(0, first_line)
             with open(self.csv_complete_path[2], 'w', newline='') as file:
                 writer = csv.writer(file, delimiter=';', lineterminator='\n')
-                if self.acquire_lock(self.csv_complete_path[2]):
-                    writer.writerows(content)
-                    self.release_lock(self.csv_complete_path[2])
+                # if self.acquire_lock(self.csv_complete_path[2]):
+                writer.writerows(content)
+                # self.release_lock(self.csv_complete_path[2])
 
 
     def new_method(self):
@@ -369,9 +373,9 @@ class Simulation:
             with open(self.csv_complete_path[1], 'a') as file:
                 writer = csv.writer(file, delimiter=';', lineterminator='\n')
                 # acquire lock and write to the file, then release the lock
-                if self.acquire_lock(self.csv_complete_path[1]):
-                    writer.writerows(content)
-                    self.release_lock(self.csv_complete_path[1])
+                # if self.acquire_lock(self.csv_complete_path[1]):
+                writer.writerows(content)
+                # self.release_lock(self.csv_complete_path[1])
 
     def add_new_users_to_csv(self):
         if self.new_users:
@@ -379,25 +383,25 @@ class Simulation:
             with open(self.csv_complete_path[0], 'a') as file:
                 writer = csv.writer(file, delimiter=';', lineterminator='\n')
                 # acquire lock and write to the file, then release the lock
-                if self.acquire_lock(self.csv_complete_path[0]):
-                    writer.writerows(content)
-                    self.release_lock(self.csv_complete_path[0])
+                # if self.acquire_lock(self.csv_complete_path[0]):
+                writer.writerows(content)
+                # self.release_lock(self.csv_complete_path[0])
 
     def write_log_dataAnalytics(self, request_cycle):
         if self.user_flow_report:
             with open(request_cycle, "a") as f:
                 # acquire lock and write to the file, then release the lock
-                if self.acquire_lock(request_cycle):
-                    f.writelines(self.user_flow_report)
-                    self.release_lock(request_cycle)
+                # if self.acquire_lock(request_cycle):
+                f.writelines(self.user_flow_report)
+                # self.release_lock(request_cycle)
 
     def write_log(self, log_cycle):
         if self.log_flow:
             with open(log_cycle, "a") as f:
                 # acquire lock and write to the file, then release the lock
-                if self.acquire_lock(log_cycle):
-                    f.writelines(self.log_flow)
-                    self.release_lock(log_cycle)
+                # if self.acquire_lock(log_cycle):
+                f.writelines(self.log_flow)
+                # self.release_lock(log_cycle)
 
     def acquire_lock(self, file_path):
         try:
