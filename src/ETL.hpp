@@ -33,6 +33,13 @@ private:
     // create dataRepo object that should be live throughout the pipeline
     DataRepo repo;
 
+    // queues references for the dataframes
+    Queue<DataFrame*>& queueIn0;
+    Queue<DataFrame*>& queueIn1;
+    // reference pointer for vector of dataframes
+    std::vector<DataFrame*> dataframes;
+    
+
     bool isRegularFile(const std::string& path) {
         struct stat statbuf;
         if (stat(path.c_str(), &statbuf) == 0) {
@@ -96,8 +103,10 @@ private:
     void procccessCsvPipeline(){
         std::vector<std::string> updatedCSVFiles = getCSVFiles(csvDirPath);
         std::vector<DataFrame> dataframesCSV = processFiles(updatedCSVFiles, processedCSVFiles);
-
-        // apply filter to the dataframes
+        // add it to ref vector of dataframes
+        for (auto& df : dataframesCSV) {
+            dataframes.push_back(&df);
+        }
 
     }
 
@@ -105,30 +114,31 @@ private:
         std::vector<std::string> updatedTXTFiles = monitorDirectory(txtDirPath, processedTXTFiles);
         std::vector<DataFrame> dataframesTXT = processFiles(updatedTXTFiles, processedTXTFiles);
 
-        // Create queue for the dataframes
-        Queue<DataFrame*> inputQueue(INPUT_MAX_QUEUE_SIZE);
-        Queue<DataFrame*> outputQueue(OUTPUT_MAX_QUEUE_SIZE);
-
-        // apply filter to the dataframer, first create a datahandler object which will filter by type == "User"
-        FilterHandler filterHandler(&inputQueue, &outputQueue);
-        FilterHandler filterHandler2(&inputQueue, &outputQueue);
-        
+        // add dataframesTXT to the queueIn0
+        for (auto& df : dataframesTXT) {
+            queueIn0.push(&df);
+        }
     }
 
     void processRequestPipeline(){
         std::vector<std::string> updatedRequestFiles = monitorDirectory(requestDirPath, processedRequestFiles);
-        std::vector<DataFrame> dataframesRequest = processFiles(updatedRequestFiles, processedRequestFiles);
+        auto dataframesRequest = processFiles(updatedRequestFiles, processedRequestFiles);
+
+        // add dataframesRequest to the queueIn1
+        for (auto& df : dataframesRequest) {
+            queueIn1.push(&df);
+        }
     }
 
-public:
-    ETL(const std::string& csvDirectory, const std::string& txtDirectory, const std::string& requestDirectory, const int INPUT_MAX_QUEUE_SIZE, const int OUTPUT_MAX_QUEUE_SIZE, const int MAX_THREADS) 
-        : csvDirPath(csvDirectory), txtDirPath(txtDirectory), requestDirPath(requestDirectory), INPUT_MAX_QUEUE_SIZE(INPUT_MAX_QUEUE_SIZE), OUTPUT_MAX_QUEUE_SIZE(OUTPUT_MAX_QUEUE_SIZE), MAX_THREADS(MAX_THREADS) {
-        std::cout << "ETL created!" << std::endl;
-    }
+    public:
+        ETL(const std::string& csvDirectory, const std::string& txtDirectory, const std::string& requestDirectory, const int INPUT_MAX_QUEUE_SIZE, const int OUTPUT_MAX_QUEUE_SIZE, const int MAX_THREADS, Queue<DataFrame*>& queueIn0, Queue<DataFrame*>& queueIn1, vector<DataFrame*> dataf) 
+            : csvDirPath(csvDirectory), txtDirPath(txtDirectory), requestDirPath(requestDirectory), INPUT_MAX_QUEUE_SIZE(INPUT_MAX_QUEUE_SIZE), OUTPUT_MAX_QUEUE_SIZE(OUTPUT_MAX_QUEUE_SIZE), MAX_THREADS(MAX_THREADS), queueIn0(queueIn0), queueIn1(queueIn1), dataframes(dataf) {
+            std::cout << "ETL created!" << std::endl;
+        }
 
-    ~ETL() {
-        std::cout << "ETL destroyed!" << std::endl;
-    }
+        ~ETL() {
+            std::cout << "ETL destroyed!" << std::endl;
+        }
 
     // Interface for notification (update) from triggers
     void updateOnTimeTrigger() override {
@@ -146,7 +156,6 @@ public:
         txtThread.join();
 
         // sleep
-        std::this_thread::sleep_for(std::chrono::seconds(1));
         std::cout << "Time-triggered Pipeline ended!" << std::endl;
     }
 
@@ -156,7 +165,6 @@ public:
         processRequestPipeline();   
         
         // sleep
-        std::this_thread::sleep_for(std::chrono::seconds(1));
         std::cout << "Request-triggered Pipeline ended!" << std::endl;
     }
 };
