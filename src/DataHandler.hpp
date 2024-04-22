@@ -72,55 +72,27 @@ public:
     }
 };
 
-
-
 /**
- * @brief Class for counting the number of lines in a DataFrame.
+ * @brief Class for value counting in a DataFrame.
  * 
  * This class is a subclass of DataHandler.
- * It counts the number of lines in a DataFrame.
- */
-class CountLinesHandler : public DataHandler {
-public:
-    CountLinesHandler(Queue<DataFrame*> *inputQueue, Queue<DataFrame*> *outputQueue)
-        : DataHandler(inputQueue, outputQueue) {};
-
-    void countLines() {
-        while(true) {
-            if (inputQueue->isEmpty()) {
-                break;
-            }
-
-            // Read the DataFrame from the input queue
-            DataFrame* df = inputQueue->pop();
-
-            // Count the lines in the DataFrame
-            int lines = df->getRowCount();
-
-            // Create a new DataFrame with the count
-            DataFrame* countDf = new DataFrame({"count"});
-            countDf->addRow(lines);
-
-            // Write the DataFrame to the output queue
-            outputQueue->push(countDf);
-        }
-    }
-};
-
-
-/**
- * @brief Class for counting the number of values in a DataFrame.
- * 
- * This class is a subclass of DataHandler.
- * It counts the number of values in a DataFrame.
+ * It counts the number of occurrences of each value in a column of a DataFrame.
  */
 class ValueCountHandler : public DataHandler {
 public:
+    /**
+     * @brief Construct a new ValueCountHandler object.
+     * 
+     * @param inputQueue Reference to the input queue.
+     * @param outputQueue Reference to the output queue.
+     * @param ColunmName The name of the column to count.
+     */
     ValueCountHandler(Queue<DataFrame*> *inputQueue, Queue<DataFrame*> *outputQueue)
         : DataHandler(inputQueue, outputQueue) {};
 
-    void valueCount(std::string columnName) {
+    void countByColumn(std::string columnName) {
         while(true) {
+
             if (inputQueue->isEmpty()) {
                 break;
             }
@@ -129,93 +101,128 @@ public:
             DataFrame* df = inputQueue->pop();
 
             // Count the values in the DataFrame
-            DataFrame* countDf = new DataFrame();
-            *countDf = df->valueCounts(columnName);
+            df->valueCounts(columnName);
 
             // Write the DataFrame to the output queue
-            outputQueue->push(countDf);
+            outputQueue->push(df);
         }
     }
 };
 
-// /**
-//  * @brief Class for joining two DataFrames.
-//  * 
-//  * This class is a subclass of DataHandler.
-//  * It joins two DataFrames based on a column name.
-//  */
-// class JoinHandler : public DataHandler {
-// public:
-//     /**
-//      * @brief Construct a new JoinHandler object.
-//      * 
-//      * @param inputQueue Reference to the input queue.
-//      * @param outputQueue Reference to the output queue.
-//      * @param ColunmName The name of the column to join.
-//      */
-//     JoinHandler(int inputQueue, int outputQueue, std::string ColunmName)
-//         : DataHandler(inputQueue, outputQueue) {}
+/**
+ * @brief Class for joining two DataFrames.
+ * 
+ * This class is a subclass of DataHandler.
+ * It joins two DataFrames based on a column name.
+ * The two DataFrames must have the same column name.
+ */
+class JoinHandler : public DataHandler {
+public:
+    /**
+     * @brief Construct a new JoinHandler object.
+     * 
+     * @param inputQueue Reference to the input queue.
+     * @param outputQueue Reference to the output queue.
+     * @param dfRight The right DataFrame to join.
+     * @param KeyColunmName The name of the column to join.
+     * @param dropKeyColumn True if the key column should be dropped, false otherwise.
+     */
+    JoinHandler(Queue<DataFrame*> *inputQueue, Queue<DataFrame*> *outputQueue)
+        : DataHandler(inputQueue, outputQueue) {};
 
-//     // Inherited from Da
-//     void execute(DataFrame& df) override {
-//         // Join the DataFrame
-//         df.joinByColumn(ColunmName);
-//     }
-// };
+    void join(DataFrame& dfRight, std::string keyColumnName, bool dropKeyColumn=false) {
+        while(true) {
+
+            if (inputQueue->isEmpty()) {
+                break;
+            }
+
+            // Read the DataFrame from the input queue
+            DataFrame* dfLeft = inputQueue->pop();
+
+            // Join the DataFrames
+            dfLeft->leftJoin(dfRight, keyColumnName, dropKeyColumn);
+
+            // Write the DataFrame to the output queue
+            outputQueue->push(dfLeft);
+        }
+    }
+};
+
+/**
+ * @brief Class for sorting data in a DataFrame.
+ * 
+ * This class is a subclass of DataHandler.
+ * It sorts the data in a DataFrame based on a column name.
+ * The data can be sorted in ascending or descending order.
+ */
+class SortHandler : public DataHandler {
+public:
+    /**
+     * @brief Construct a new SortHandler object.
+     * 
+     * @param inputQueue Reference to the input queue.
+     * @param outputQueue Reference to the output queue.
+     * @param ColunmName The name of the column to sort.
+     * @param ascending True if the data should be sorted in ascending order, false otherwise.
+     */
+    SortHandler(Queue<DataFrame*> *inputQueue, Queue<DataFrame*> *outputQueue)
+        : DataHandler(inputQueue, outputQueue) {};
+
+    void sortByColumn(std::string columnName, bool ascending=true) {
+        while(true) {
+
+            if (inputQueue->isEmpty()) {
+                break;
+            }
+
+            // Read the DataFrame from the input queue
+            DataFrame* df = inputQueue->pop();
+
+            // Sort the DataFrame
+            df->sortByColumn(columnName, ascending);
+
+            // Write the DataFrame to the output queue
+            outputQueue->push(df);
+        }
+    }
+};    
 
 // /**
 //  * @brief Class for grouping data in a DataFrame.
 //  * 
 //  * This class is a subclass of DataHandler.
 //  * It groups the data in a DataFrame based on a column name.
+//  * The data can be grouped by sum, mean, median, min or max.
 //  */
-// class GroupByHandler : public DataHandler {
-// private:
-//     std::string ColunmName;
-
+// class GroupHandler : public DataHandler {
 // public:
 //     /**
-//      * @brief Construct a new GroupByHandler object.
+//      * @brief Construct a new GroupHandler object.
 //      * 
 //      * @param inputQueue Reference to the input queue.
 //      * @param outputQueue Reference to the output queue.
 //      * @param ColunmName The name of the column to group.
 //      */
-//     GroupByHandler(int inputQueue, int outputQueue, std::string ColunmName)
-//         : DataHandler(inputQueue, outputQueue), ColunmName(ColunmName) {}
+//     GroupHandler(Queue<DataFrame*> *inputQueue, Queue<DataFrame*> *outputQueue)
+//         : DataHandler(inputQueue, outputQueue) {};
 
-//     // Inherited from DataHandler
-//     void execute(DataFrame& df) override {
-//         // Group the DataFrame
-//         df.groupByColumn(ColunmName);
-//     }
-// };
+//     void groupByColumn(std::string columnName, GroupOperation op) {
+//         while(true) {
 
-// /**
-//  * @brief Class for sorting data in a DataFrame.
-//  * 
-//  * This class is a subclass of DataHandler.
-//  * It sorts the data in a DataFrame based on a column name.
-//  */
-// class SortHandler : public DataHandler {
-// private:
-//     std::string ColunmName;
+//             if (inputQueue->isEmpty()) {
+//                 break;
+//             }
 
-// public:
-//     /**
-//      * @brief Construct a new SortHandler object.
-//      * 
-//      * @param inputQueue Reference to the input queue.
-//      * @param outputQueue Reference to the output queue.
-//      * @param ColunmName The name of the column to sort.
-//      */
-//     SortHandler(int inputQueue, int outputQueue, std::string ColunmName)
-//         : DataHandler(inputQueue, outputQueue), ColunmName(ColunmName) {}
+//             // Read the DataFrame from the input queue
+//             DataFrame* df = inputQueue->pop();
 
-//     // Inherited from DataHandler
-//     void execute(DataFrame& df) override {
-//         // Sort the DataFrame
-//         df.sortByColumn(ColunmName);
+//             // Group the DataFrame
+//             df->groupByColumn(columnName, op);
+
+//             // Write the DataFrame to the output queue
+//             outputQueue->push(df);
+//         }
 //     }
 // };
 
