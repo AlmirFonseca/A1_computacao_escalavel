@@ -150,8 +150,7 @@ int main() {
 
         // Test the deep copy method
         cout << "Testing the deep copy method" << endl;
-        DataFrame dfCopy;
-        dfCopy.deepCopy(df);
+        DataFrame dfCopy = DataFrame::deepCopy(df, true);
 
         cout << "Original DataFrame" << endl;
         df.print();
@@ -177,8 +176,7 @@ int main() {
         cout << endl;
 
         cout << "Test a copy without keeping the data" << endl;
-        DataFrame dfCopy2;
-        dfCopy2.deepCopy(df, false);
+        DataFrame dfCopy2 = DataFrame::deepCopy(df, false);
         dfCopy2.printColumnTypes();
         cout << "Original DataFrame" << endl;
         df.print();
