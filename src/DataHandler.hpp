@@ -73,7 +73,7 @@ public:
             int lines = df->getRowCount();
 
             // Create a new DataFrame with the count
-            DataFrame* countDf = new DataFrame({"count"});
+            DataFrame* countDf = new DataFrame({"Count"});
             countDf->addRow(lines);
 
             // Write the DataFrame to the output queues

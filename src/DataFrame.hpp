@@ -999,6 +999,14 @@ public:
      * @throws runtime_error If the ID or sum column is not found or if there are type mismatches.
      */
     static DataFrame mergeAndSum(DataFrame& df1, DataFrame& df2, const string& idColumnName, const string& sumColumnName) {
+        // If there is no column in ID column, return a dataframe with the sum of the count column
+        if (idColumnName == "") {
+            int sum = any_cast<int>(df1.sum(sumColumnName)) + any_cast<int>(df2.sum(sumColumnName));
+            DataFrame* result = new DataFrame({sumColumnName});
+            result->addRow(sum);
+            return *result;
+        }
+
         // Ensure both DataFrames have the required columns
         if (df1.columns.find(idColumnName) == df1.columns.end() || df2.columns.find(idColumnName) == df2.columns.end() ||
             df1.columns.find(sumColumnName) == df1.columns.end() || df2.columns.find(sumColumnName) == df2.columns.end()) {
