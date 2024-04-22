@@ -70,10 +70,31 @@ int main() {
     longSeries.print();
 
     // Test the sum method
-    cout << "\nSum of intSeries: " << intSeries.sum() << endl;
-    cout << "Sum of doubleSeries: " << doubleSeries.sum() << endl;
-    cout << "Sum of longSeries: " << longSeries.sum() << endl;
-    // cout << "Sum of stringSeries: " << stringSeries.sum() << endl; -> Throws a compile-time assertion error
+    cout << "\nSum of intSeries: " << any_cast<int>(intSeries.sum()) << endl;
+    cout << "Sum of doubleSeries: " << any_cast<double>(doubleSeries.sum()) << endl;
+    cout << "Sum of longSeries: " << any_cast<long long>(longSeries.sum()) << endl;
+    // cout << "Sum of stringSeries: " << any_cast<string>(stringSeries.sum()) << endl; //-> Throws a runtime error
+    cout << endl;
+
+    Series<int> mySeries("Sample Series");
+    mySeries.add(1);
+    mySeries.add(2);
+    mySeries.add(2);
+    mySeries.add(3);
+    mySeries.add(3);
+    mySeries.add(3);
+    mySeries.add(4);
+    mySeries.add(4);
+    mySeries.add(4);
+    mySeries.add(4);
+
+    auto uniqueSeries = mySeries.unique(); // Auto = shared_ptr<Series<int>>
+
+    std::cout << "Original Series:" << std::endl;
+    mySeries.print();
+
+    std::cout << "Unique Series:" << std::endl;
+    uniqueSeries->print();
 
     return 0;
 }

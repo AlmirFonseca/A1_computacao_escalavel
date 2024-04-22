@@ -46,10 +46,22 @@ bool performComparison(T val1, T val2, CompareOperation op) {
 }
 
 bool compareValues(const std::type_info& typeInfo, const std::any& a, const std::any& b, CompareOperation op) {
-    if (a.type() != b.type()) {
-        std::cerr << "Type mismatch: cannot compare different types." << std::endl;
-        return false;  // Early exit if types don't match directly
-    }
+    // Check if the type is a string or const char* (due to the string casting from any)
+    if (typeInfo == typeid(std::string)) {
+        try {
+            return performComparison(std::any_cast<std::string>(a), std::any_cast<std::string>(b), op);
+        } catch (const std::bad_any_cast& e) {
+            std::cerr << "Failed to cast std::string: " << e.what() << std::endl;
+        }
+    } else if (typeInfo == typeid(const char*)) {
+        try {
+            auto str1 = std::any_cast<const char*>(a);
+            auto str2 = std::any_cast<const char*>(b);
+            return performComparison(std::string(str1), std::string(str2), op);
+        } catch (const std::bad_any_cast& e) {
+            std::cerr << "Failed to cast const char*: " << e.what() << std::endl;
+        }
+    } 
 
     try {
         // Using common_type to deduce the best type for comparison
@@ -313,6 +325,12 @@ public:
         // Iterate from the last index to the first
         for (size_t i = rowCount; i-- > 0;) {
             const std::any& columnValue = colIt->second->getDataAtIndex(i);
+
+            // Check if the column value type matches the filter value type
+            if (columnValue.type() != filterValue.type()) {
+                throw std::runtime_error("Type mismatch error: Column value type does not match filter value type.");
+            }
+
             bool comparisonResult = compareValues(columnType, columnValue, filterValue, op);
 
             // Decide whether to remove the row based on the `keep` flag and comparison result
@@ -665,6 +683,15 @@ public:
         }
     }
 
+    size_t getColumnIndex(const string& columnName) {
+        for (size_t i = 0; i < columnNames.size(); i++) {
+            if (columnNames[i] == columnName) {
+                return i;
+            }
+        }
+        throw runtime_error("Column not found.");
+    }
+
     /**
      * @brief Return a value based on the column and row index.
      * 
@@ -755,6 +782,28 @@ public:
             else dataType = 's';                
         }
         return dataType;
+    }
+
+    /**
+     * @brief Calculate the sum of a column in the DataFrame.
+     * 
+     * This method calculates the sum of a column in the DataFrame based on the column index.
+     * 
+     * @param columnIndex The index of the column to calculate the sum for.
+     * @return The sum of the column.
+     * @throws runtime_error If the column does not exist.
+     */
+    any sum(size_t columnIndex) {
+        if (columnIndex >= columnNames.size()) {
+            throw runtime_error("Column not found.");
+        }
+
+        return columns[columnNames[columnIndex]]->sum();
+    }
+
+    // Overload by name
+    any sum(const string& columnName) {
+        return sum(getColumnIndex(columnName));
     }
 };
 

@@ -11,6 +11,7 @@
 #include <typeinfo>
 #include <vector>
 #include <numeric>
+#include <unordered_set>
 
 using namespace std;
 
@@ -124,6 +125,13 @@ public:
      * @brief Clears the series data.
      */
     virtual void clear() = 0;
+
+    /**
+     * @brief Computes the sum of the elements in the series.
+     * 
+     * @return The sum of the elements in the series.
+     */
+    virtual any sum() const = 0;
 };
 
 
@@ -343,9 +351,34 @@ public:
      * 
      * @return The sum of the elements in the series.
      */
-    T sum() const {
-        static_assert(std::is_arithmetic<T>::value, "Sum operation not supported for non-arithmetic types.");
-        return std::accumulate(data.begin(), data.end(), T{});
+    any sum() const override {
+    if constexpr (std::is_arithmetic<T>::value) {
+        return std::accumulate(data.begin(), data.end(), T(0)); // Correct usage of std::accumulate for arithmetic types
+    } else {
+        throw std::runtime_error("Sum operation not supported for non-arithmetic types.");
+    }
+}
+
+    /**
+     * @brief Generates a new series with unique values.
+     * 
+     * This function generates a new series with unique values from the current series.
+     * 
+     * @return A shared pointer to the new series with unique values.
+     */
+    shared_ptr<Series<T>> unique() const {
+        std::unordered_set<T> seen;  // To keep track of seen values
+        // Create a new series to store unique values
+        shared_ptr<Series<T>> uniqueSeries = make_shared<Series<T>>(name + " (Unique)");
+
+        // Iterate over the data and add unique values to the new series
+        for (const auto& value : data) {
+            if (seen.insert(value).second) {  // .second is true if the insert was successful (i.e., the value was not already present)
+                uniqueSeries->add(value);
+            }
+        }
+
+        return uniqueSeries;
     }
 };
 
