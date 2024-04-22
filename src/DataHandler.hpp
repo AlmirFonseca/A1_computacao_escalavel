@@ -72,6 +72,72 @@ public:
     }
 };
 
+
+
+/**
+ * @brief Class for counting the number of lines in a DataFrame.
+ * 
+ * This class is a subclass of DataHandler.
+ * It counts the number of lines in a DataFrame.
+ */
+class CountLinesHandler : public DataHandler {
+public:
+    CountLinesHandler(Queue<DataFrame*> *inputQueue, Queue<DataFrame*> *outputQueue)
+        : DataHandler(inputQueue, outputQueue) {};
+
+    void countLines() {
+        while(true) {
+            if (inputQueue->isEmpty()) {
+                break;
+            }
+
+            // Read the DataFrame from the input queue
+            DataFrame* df = inputQueue->pop();
+
+            // Count the lines in the DataFrame
+            int lines = df->getRowCount();
+
+            // Create a new DataFrame with the count
+            DataFrame* countDf = new DataFrame({"count"});
+            countDf->addRow(lines);
+
+            // Write the DataFrame to the output queue
+            outputQueue->push(countDf);
+        }
+    }
+};
+
+
+/**
+ * @brief Class for counting the number of values in a DataFrame.
+ * 
+ * This class is a subclass of DataHandler.
+ * It counts the number of values in a DataFrame.
+ */
+class ValueCountHandler : public DataHandler {
+public:
+    ValueCountHandler(Queue<DataFrame*> *inputQueue, Queue<DataFrame*> *outputQueue)
+        : DataHandler(inputQueue, outputQueue) {};
+
+    void valueCount(std::string columnName) {
+        while(true) {
+            if (inputQueue->isEmpty()) {
+                break;
+            }
+
+            // Read the DataFrame from the input queue
+            DataFrame* df = inputQueue->pop();
+
+            // Count the values in the DataFrame
+            DataFrame* countDf = new DataFrame();
+            *countDf = df->valueCounts(columnName);
+
+            // Write the DataFrame to the output queue
+            outputQueue->push(countDf);
+        }
+    }
+};
+
 // /**
 //  * @brief Class for joining two DataFrames.
 //  * 
