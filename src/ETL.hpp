@@ -34,10 +34,10 @@ private:
     DataRepo repo;
 
     // queues references for the dataframes
-    Queue<DataFrame*>& queueIn0;
-    Queue<DataFrame*>& queueIn1;
+    Queue<DataFrame*>& queueOutDC;
+    Queue<DataFrame*>& queueOutCA;
     // reference pointer for vector of dataframes
-    std::vector<DataFrame*> dataframes;
+    Queue<DataFrame*>& queueOutCV;
     
 
     bool isRegularFile(const std::string& path) {
@@ -70,28 +70,31 @@ private:
         return newFiles;
     }
 
-    std::vector<DataFrame> processFiles(const std::vector<std::string>& files, std::vector<std::string>& processedFiles) {
+    void processFiles(const std::vector<std::string>& files, std::vector<std::string>& processedFiles, Queue<DataFrame*>& queueOut, string strategy) {
         if (files.empty()) {
-            std::cout << "No new files found." << std::endl;
-            return {};
+            // std::cout << "No new files found." << std::endl;
+            return;
         }
 
-        std::vector<DataFrame> dataframes;
-
-        for (const auto& filePath : files) {
-            std::cout << "Processing new file: " << filePath << std::endl;
-            processedFiles.push_back(filePath);
-            
-            repo.setExtractionStrategy("csv");
-            cout<<"Extracting data from file: " + filePath + "\n";
-            DataFrame* df = repo.extractData(filePath, ';');
-            if (df == nullptr) {
-                std::cerr << "DataFrame is empty!" << filePath<<std::endl;
+        for (const auto& filePath : files) {    
+            // Check if the file is already processed
+            if (std::find(processedFiles.begin(), processedFiles.end(), filePath) != processedFiles.end()) {
                 continue;
             }
-            dataframes.push_back(*df);
+
+            std::cout << "Processing new file: " << filePath << std::endl;
+
+            processedFiles.push_back(filePath);
+            
+            repo.setExtractionStrategy(strategy);
+            // cout<<"Extracting data from file: " + filePath + "\n";
+            DataFrame* df = repo.extractData(filePath, ';');
+            if (df == nullptr) {
+                // std::cerr << "DataFrame is empty!" << filePath<<std::endl;
+                continue;
+            }
+            queueOut.push(df);
         }
-        return dataframes;
     }
 
     // get the csv files from the directory
@@ -102,37 +105,22 @@ private:
 
     void procccessCsvPipeline(){
         std::vector<std::string> updatedCSVFiles = getCSVFiles(csvDirPath);
-        std::vector<DataFrame> dataframesCSV = processFiles(updatedCSVFiles, processedCSVFiles);
-        // add it to ref vector of dataframes
-        for (auto& df : dataframesCSV) {
-            dataframes.push_back(&df);
-        }
-
+        processFiles(updatedCSVFiles, processedCSVFiles, queueOutCV, "csv");
     }
 
     void procccessTxtPipeline(){
         std::vector<std::string> updatedTXTFiles = monitorDirectory(txtDirPath, processedTXTFiles);
-        std::vector<DataFrame> dataframesTXT = processFiles(updatedTXTFiles, processedTXTFiles);
-
-        // add dataframesTXT to the queueIn0
-        for (auto& df : dataframesTXT) {
-            queueIn0.push(&df);
-        }
+        processFiles(updatedTXTFiles, processedTXTFiles, queueOutDC, "txt");
     }
 
     void processRequestPipeline(){
         std::vector<std::string> updatedRequestFiles = monitorDirectory(requestDirPath, processedRequestFiles);
-        auto dataframesRequest = processFiles(updatedRequestFiles, processedRequestFiles);
-
-        // add dataframesRequest to the queueIn1
-        for (auto& df : dataframesRequest) {
-            queueIn1.push(&df);
-        }
+        processFiles(updatedRequestFiles, processedRequestFiles, queueOutCA, "txt");
     }
 
     public:
-        ETL(const std::string& csvDirectory, const std::string& txtDirectory, const std::string& requestDirectory, const int INPUT_MAX_QUEUE_SIZE, const int OUTPUT_MAX_QUEUE_SIZE, const int MAX_THREADS, Queue<DataFrame*>& queueIn0, Queue<DataFrame*>& queueIn1, vector<DataFrame*> dataf) 
-            : csvDirPath(csvDirectory), txtDirPath(txtDirectory), requestDirPath(requestDirectory), INPUT_MAX_QUEUE_SIZE(INPUT_MAX_QUEUE_SIZE), OUTPUT_MAX_QUEUE_SIZE(OUTPUT_MAX_QUEUE_SIZE), MAX_THREADS(MAX_THREADS), queueIn0(queueIn0), queueIn1(queueIn1), dataframes(dataf) {
+        ETL(const std::string& csvDirectory, const std::string& txtDirectory, const std::string& requestDirectory, const int INPUT_MAX_QUEUE_SIZE, const int OUTPUT_MAX_QUEUE_SIZE, const int MAX_THREADS, Queue<DataFrame*>& queueCV, Queue<DataFrame*>& queueDC, Queue<DataFrame*>& queueCA)
+            : csvDirPath(csvDirectory), txtDirPath(txtDirectory), requestDirPath(requestDirectory), INPUT_MAX_QUEUE_SIZE(INPUT_MAX_QUEUE_SIZE), OUTPUT_MAX_QUEUE_SIZE(OUTPUT_MAX_QUEUE_SIZE), MAX_THREADS(MAX_THREADS), queueOutCV(queueCV), queueOutDC(queueDC), queueOutCA(queueCA) {
             std::cout << "ETL created!" << std::endl;
         }
 
@@ -156,7 +144,7 @@ private:
         txtThread.join();
 
         // sleep
-        std::cout << "Time-triggered Pipeline ended!" << std::endl;
+        // std::cout << "Time-triggered Pipeline ended!" << std::endl;
     }
 
     // Interface for handling request from triggers
@@ -165,7 +153,7 @@ private:
         processRequestPipeline();   
         
         // sleep
-        std::cout << "Request-triggered Pipeline ended!" << std::endl;
+        // std::cout << "Request-triggered Pipeline ended!" << std::endl;
     }
 };
 
