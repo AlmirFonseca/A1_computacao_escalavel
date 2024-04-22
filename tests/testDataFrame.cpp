@@ -218,6 +218,7 @@ int main() {
         DataFrame plainDataFrame = DataFrame({"ID", "Timestamp", "Score", "Name"});
         plainDataFrame.addRow("1", "1713214692000", "100.0", "Alice");
         plainDataFrame.addRow("2", "1713214693000", "90.0", "Bob");
+        plainDataFrame.addRow("3", "1713214694000", "80.8", "Charlie");
         plainDataFrame.print();
         plainDataFrame.printColumnTypes();
 
@@ -225,6 +226,10 @@ int main() {
         cout << endl;
         cout << "Testing the method getValueAt" << endl;
         cout << "Value at row 0 and column 0: " << plainDataFrame.getValueAt(1, 1) << endl;
+
+        // Test the sum method
+        cout << "\nSum of Score: " << any_cast<float>(plainDataFrame.sum("Score")) << endl;
+
 
 
 

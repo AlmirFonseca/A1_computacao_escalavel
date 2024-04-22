@@ -683,6 +683,15 @@ public:
         }
     }
 
+    size_t getColumnIndex(const string& columnName) {
+        for (size_t i = 0; i < columnNames.size(); i++) {
+            if (columnNames[i] == columnName) {
+                return i;
+            }
+        }
+        throw runtime_error("Column not found.");
+    }
+
     /**
      * @brief Return a value based on the column and row index.
      * 
@@ -773,6 +782,28 @@ public:
             else dataType = 's';                
         }
         return dataType;
+    }
+
+    /**
+     * @brief Calculate the sum of a column in the DataFrame.
+     * 
+     * This method calculates the sum of a column in the DataFrame based on the column index.
+     * 
+     * @param columnIndex The index of the column to calculate the sum for.
+     * @return The sum of the column.
+     * @throws runtime_error If the column does not exist.
+     */
+    any sum(size_t columnIndex) {
+        if (columnIndex >= columnNames.size()) {
+            throw runtime_error("Column not found.");
+        }
+
+        return columns[columnNames[columnIndex]]->sum();
+    }
+
+    // Overload by name
+    any sum(const string& columnName) {
+        return sum(getColumnIndex(columnName));
     }
 };
 
