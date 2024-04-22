@@ -96,5 +96,22 @@ int main() {
     std::cout << "Unique Series:" << std::endl;
     uniqueSeries->print();
 
+    // Test the addNull method
+    cout << "\nAdding a null element to intSeries\n";
+    intSeries.addNull();
+    cout << "Last element in intSeries (using operator[]): " << intSeries[intSeries.size() - 1] << endl;
+
+    cout << "\nAdding a null element to doubleSeries\n";
+    doubleSeries.addNull();
+    cout << "Last element in doubleSeries (using operator[]): " << doubleSeries[doubleSeries.size() - 1] << endl;
+
+    cout << "\nAdding a null element to stringSeries\n";
+    stringSeries.addNull();
+    cout << "Last element in stringSeries (using operator[]): " << stringSeries[stringSeries.size() - 1] << endl;
+
+    cout << "\nAdding a null element to longSeries\n";
+    longSeries.addNull();
+    cout << "Last element in longSeries (using operator[]): " << longSeries[longSeries.size() - 1] << endl;
+
     return 0;
 }

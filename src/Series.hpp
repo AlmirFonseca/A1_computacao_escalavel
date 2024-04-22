@@ -132,6 +132,11 @@ public:
      * @return The sum of the elements in the series.
      */
     virtual any sum() const = 0;
+
+    /**
+     * @brief Adds a null value to the series.
+     */
+    virtual void addNull() = 0;
 };
 
 
@@ -379,6 +384,10 @@ public:
         }
 
         return uniqueSeries;
+    }
+
+    void addNull() {
+        data.push_back(T());
     }
 };
 
