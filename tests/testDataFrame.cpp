@@ -13,8 +13,8 @@ int main() {
         df.addRow(3, "Charlie", 79.5);
 
         // Print out the DataFrame information
-        std::cout << "DataFrame has " << df.getColumnCount() << " columns and "
-                  << df.getRowCount() << " rows." << std::endl;
+        cout << "DataFrame has " << df.getColumnCount() << " columns and "
+                  << df.getRowCount() << " rows." << endl;
 
         // Assuming DataFrame has a method to print its content
         // This part is pseudocode and needs actual implementation in DataFrame
@@ -46,35 +46,6 @@ int main() {
         // Test the method printColumnTypes
         df.printColumnTypes();
         cout << endl;
-
-        // // Test the method filterByColumn over the colum score == 100
-        // df.filterByColumn("ID", 1);
-        // df.print();
-        // cout << endl;
-
-        // df.addRow(5, 100.0, string("On"), 'A', 1);
-        // df.addRow(6, 100.0, string("On"), 'A', 0);
-        // df.addRow(7, 100.0, string("Off"), 'A', 1);
-        // df.addRow(8, 100.0, string("Off"), 'A', 0);
-        // df.print();
-        // cout << endl;
-
-        // cout << "KEEP FALSE" << endl;
-        // df.filterByColumn("Score", 100.0, false); // false means (remove the rows that are don't match)
-        // df.print();
-        // cout << endl;
-
-        // df.addRow(5, 100.0, string("On"), 'A', 1);
-        // df.addRow(6, 100.0, string("On"), 'A', 0);
-        // df.addRow(7, 100.0, string("Off"), 'A', 1);
-        // df.print();
-        // cout << endl;
-
-        // cout << "KEEP TRUE" << endl;
-        // df.filterByColumn("Score", 100.0, true); // true means (keep the rows that are match)
-        // df.print();
-        // cout << endl;
-        // df.addRow(8, 100.0, string("Off"), 'A', 0);
 
         DataFrame dfAge({"Age", "Salary", "Name"});
         
@@ -190,44 +161,6 @@ int main() {
         cout << "Copy DataFrame" << endl;
         dfCopy2.print();
 
-        vector<string> columnNames = {"ID", "Name", "Score"};
-
-        DataFrame emptyDataframe = DataFrame(columnNames);
-
-        emptyDataframe.printColumnTypes();
-
-        emptyDataframe.addColumnValue(0, 4);
-        emptyDataframe.addColumnValue(1, "Diana");
-        emptyDataframe.addColumnValue(2, 100.0);
-        emptyDataframe.increaseRowCount();
-
-        emptyDataframe.print();
-        emptyDataframe.printColumnTypes();
-
-        cout << endl;
-        cout << "Testing the method getDataType" << endl;
-        cout << "1 as " <<  emptyDataframe.getDataType("1") << endl;
-        cout << "1.2 as " <<  emptyDataframe.getDataType("1.2") << endl;
-        cout << "1713214692000 as " <<  emptyDataframe.getDataType("1713214692000") << endl;
-        cout << "c as " <<  emptyDataframe.getDataType("c") << endl;
-        cout << "string as " <<  emptyDataframe.getDataType("string") << endl;
-        cout << endl;
-
-        DataFrame plainDataFrame = DataFrame({"ID", "Timestamp", "Score", "Name"});
-        plainDataFrame.addRow("1", "1713214692000", "100.0", "Alice");
-        plainDataFrame.addRow("2", "1713214693000", "90.0", "Bob");
-        plainDataFrame.addRow("3", "1713214694000", "80.8", "Charlie");
-        plainDataFrame.print();
-        plainDataFrame.printColumnTypes();
-
-        // Testing the method getValueAt
-        cout << endl;
-        cout << "Testing the method getValueAt" << endl;
-        cout << "Value at row 0 and column 0: " << plainDataFrame.getValueAt(1, 1) << endl;
-
-        // Test the sum method
-        cout << "\nSum of Score: " << any_cast<float>(plainDataFrame.sum("Score")) << endl;
-
         // Test the valueCounts method
         cout << "\nOriginal Dataframe: " << endl;
         DataFrame dfForCounting({"ID", "Age"});
@@ -302,9 +235,30 @@ int main() {
         joinedDf.print();
         joinedDf.printColumnTypes();
 
+        // Create two DataFrames with ID and Value columns
+        DataFrame dfToMergeAndSum1({"ID", "Value"});
+        DataFrame dfToMergeAndSum2({"ID", "Value"});
 
-    } catch (const std::exception& e) {
-        std::cerr << "Exception occurred: " << e.what() << std::endl;
+        // Add some rows to df1
+        dfToMergeAndSum1.addRow("A", 100);
+        dfToMergeAndSum1.addRow("B", 150);
+        dfToMergeAndSum1.addRow("C", 200);
+
+        // Add some rows to df2
+        dfToMergeAndSum2.addRow("A", 300);
+        dfToMergeAndSum2.addRow("B", 250);
+        dfToMergeAndSum2.addRow("D", 450);
+
+        // Merge and sum the two DataFrames
+        DataFrame mergedAndSumResult = DataFrame::mergeAndSum(dfToMergeAndSum1, dfToMergeAndSum2, "ID", "Value");
+
+        // Print the result
+        cout << "Resulting DataFrame after merging and summing:" << endl;
+        mergedAndSumResult.print();
+
+
+    } catch (const exception& e) {
+        cerr << "Exception occurred: " << e.what() << endl;
     }
 
     return 0;

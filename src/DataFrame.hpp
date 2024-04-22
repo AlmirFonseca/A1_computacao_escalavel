@@ -15,6 +15,11 @@
 
 using namespace std;
 
+/**
+ * @brief A comparison operation enum class.
+ * 
+ * The CompareOperation enum class represents the different comparison operations that can be performed.
+ */
 enum class CompareOperation {
     EQUAL,
     NOT_EQUAL,
@@ -24,6 +29,17 @@ enum class CompareOperation {
     LESS_THAN_OR_EQUAL
 };
 
+/**
+ * @brief Perform a comparison operation on two values of the same type.
+ * 
+ * This function performs a comparison operation on two values of the same type.
+ * 
+ * @tparam T The type of the values to be compared.
+ * @param val1 The first value to be compared.
+ * @param val2 The second value to be compared.
+ * @param op The comparison operation to be performed.
+ * @return True if the comparison is successful, false otherwise.
+ */
 template<typename T>
 bool performComparison(T val1, T val2, CompareOperation op) {
     switch (op) {
@@ -40,44 +56,57 @@ bool performComparison(T val1, T val2, CompareOperation op) {
         case CompareOperation::LESS_THAN_OR_EQUAL:
             return val1 <= val2;
         default:
-            std::cerr << "Unsupported comparison operation." << std::endl;
+            cerr << "Unsupported comparison operation." << endl;
             return false;  // Handle unknown operation
     }
 }
 
-bool compareValues(const std::type_info& typeInfo, const std::any& a, const std::any& b, CompareOperation op) {
-    // Check if the type is a string or const char* (due to the string casting from any)
-    if (typeInfo == typeid(std::string)) {
+/**
+ * @brief Compare two values of any type.
+ * 
+ * This function compares two values of any type using the specified comparison operation.
+ * 
+ * @param typeInfo The type information of the values.
+ * @param a The first value to be compared.
+ * @param b The second value to be compared.
+ * @param op The comparison operation to be performed.
+ * @return True if the comparison is successful, false otherwise.
+ */
+bool compareValues(const type_info& typeInfo, const any& a, const any& b, CompareOperation op) {
+    // Treat if the type is a string or const char* (due to the fragile string casting from any)
+    if (typeInfo == typeid(string)) {
         try {
-            return performComparison(std::any_cast<std::string>(a), std::any_cast<std::string>(b), op);
-        } catch (const std::bad_any_cast& e) {
-            std::cerr << "Failed to cast std::string: " << e.what() << std::endl;
+            // Cast to string and perform the comparison
+            return performComparison(any_cast<string>(a), any_cast<string>(b), op);
+        } catch (const bad_any_cast& e) {
+            cerr << "Failed to cast string: " << e.what() << endl;
         }
     } else if (typeInfo == typeid(const char*)) {
         try {
-            auto str1 = std::any_cast<const char*>(a);
-            auto str2 = std::any_cast<const char*>(b);
-            return performComparison(std::string(str1), std::string(str2), op);
-        } catch (const std::bad_any_cast& e) {
-            std::cerr << "Failed to cast const char*: " << e.what() << std::endl;
+            // Cast to string (const char*) and perform the comparison
+            return performComparison(string(any_cast<const char*>(a)), string(any_cast<const char*>(b)), op);
+        } catch (const bad_any_cast& e) {
+            cerr << "Failed to cast const char*: " << e.what() << endl;
         }
     } 
 
     try {
         // Using common_type to deduce the best type for comparison
-        using CommonType = std::common_type_t<decltype(std::any_cast<int>(a)), decltype(std::any_cast<int>(b))>;
+        using CommonType = common_type_t<decltype(any_cast<int>(a)), decltype(any_cast<int>(b))>;
 
         // Perform the cast and comparison using the common type
-        CommonType val1 = std::any_cast<CommonType>(a);
-        CommonType val2 = std::any_cast<CommonType>(b);
+        CommonType val1 = any_cast<CommonType>(a);
+        CommonType val2 = any_cast<CommonType>(b);
 
+        // Perform the comparison based on the required operation
         return performComparison(val1, val2, op);
-    } catch (const std::bad_any_cast& e) {
-        std::cerr << "Failed to cast types for comparison: " << e.what() << std::endl;
+    } catch (const bad_any_cast& e) {
+        cerr << "Failed to cast types for comparison: " << e.what() << endl;
     } catch (...) {
-        std::cerr << "An error occurred during comparison." << std::endl;
+        cerr << "An error occurred during comparison." << endl;
     }
 
+    // Return false any return point was reached
     return false;
 }
 
@@ -247,7 +276,7 @@ public:
      * @tparam T The type of the column values.
      * @param columnName The name of the new column.
      * @param defaultValue The default value to be filled in the new column for each existing row.
-     * @throws std::runtime_error if a column with the same name already exists.
+     * @throws runtime_error if a column with the same name already exists.
      */
     template<typename T>
     void addColumn(const string& columnName, const T& defaultValue) {
@@ -274,12 +303,12 @@ public:
      * This method removes a row from the DataFrame based on the row index.
      * 
      * @param rowIndex The index of the row to be removed.
-     * @throws std::out_of_range If the row index is out of range.
+     * @throws out_of_range If the row index is out of range.
      */
     void dropRow(size_t rowIndex) {
         // Check if the rowIndex is valid
         if (rowIndex >= rowCount) {
-            throw std::out_of_range("Row index out of range.");
+            throw out_of_range("Row index out of range.");
         }
 
         // Iterate through each column and remove the element at rowIndex
@@ -298,9 +327,11 @@ public:
      * This method prints the type of each column in the DataFrame to the console.
      */
     void printColumnTypes() const {
+        cout << endl << "Column Types:" << endl;
         for (const auto& [name, series] : columns) {
             cout << name << ": " << series->type().name() << endl;
         }
+        cout << endl;
     }
 
     /**
@@ -312,23 +343,23 @@ public:
      * @param columnName The name of the column to filter by.
      * @param filterValue The value to filter by.
      * @param op The comparison operation to use for filtering.
-     * @throws std::runtime_error If the column does not exist.
+     * @throws runtime_error If the column does not exist.
      */
-    void filterByColumn(const std::string& columnName, const std::any& filterValue, CompareOperation op) {
+    void filterByColumn(const string& columnName, const any& filterValue, CompareOperation op) {
         auto colIt = columns.find(columnName);
         if (colIt == columns.end()) {
-            throw std::runtime_error("Column not found: " + columnName);
+            throw runtime_error("Column not found: " + columnName);
         }
 
         const auto& columnType = colIt->second->type();  // Retrieve the type_info of the column
 
         // Iterate from the last index to the first
         for (size_t i = rowCount; i-- > 0;) {
-            const std::any& columnValue = colIt->second->getDataAtIndex(i);
+            const any& columnValue = colIt->second->getDataAtIndex(i);
 
             // Check if the column value type matches the filter value type
             if (columnValue.type() != filterValue.type()) {
-                throw std::runtime_error("Type mismatch error: Column value type does not match filter value type.");
+                throw runtime_error("Type mismatch error: Column value type does not match filter value type.");
             }
 
             bool comparisonResult = compareValues(columnType, columnValue, filterValue, op);
@@ -355,8 +386,8 @@ public:
      * @param df2 The second DataFrame to be merged.
      * @param columnName The name of the column to merge on.
      * @return The merged DataFrame.
-     * @throws std::runtime_error If the column is not found in both DataFrames.
-     * @throws std::runtime_error If the column types do not match.
+     * @throws runtime_error If the column is not found in both DataFrames.
+     * @throws runtime_error If the column types do not match.
      */
     static DataFrame mergeOrdered(const DataFrame& df1, const DataFrame& df2, const string& columnName) {
         DataFrame result;
@@ -441,9 +472,20 @@ public:
             return;
         }
 
+        cout << endl;
+        for (size_t i = 0; i < columnNames.size(); ++i) {
+            cout << "----------------";
+        }
+        cout << endl;
+
         // Print column headers
         for (const auto& columnName : columnNames) {
-            cout << columnName << "\t";
+            cout << columnName << "\t\t";
+        }
+
+        cout << endl;
+        for (size_t i = 0; i < columnNames.size(); ++i) {
+            cout << "################";
         }
         cout << endl;
 
@@ -451,10 +493,15 @@ public:
         for (size_t rowIndex = startIndex; rowIndex <= endIndex; ++rowIndex) {
             for (const auto& columnName : columnNames) {
                 // Directly access and print the data for each column at rowIndex
-                cout << columns.at(columnName)->getStringAtIndex(rowIndex) << "\t";
+                cout << columns.at(columnName)->getStringAtIndex(rowIndex) << "\t\t";
             }
             cout << endl;
         }
+        
+        for (size_t i = 0; i < columnNames.size(); ++i) {
+            cout << "----------------";
+        }
+        cout << endl;
     }
 
     /**
@@ -464,11 +511,11 @@ public:
      * 
      * @param name The name of the column to be retrieved.
      * @return A shared pointer to the column.
-     * @throws std::runtime_error If the column is not found.
+     * @throws runtime_error If the column is not found.
      */
-    std::shared_ptr<ISeries> getColumnPtr(const std::string& name) const {
+    shared_ptr<ISeries> getColumnPtr(const string& name) const {
         auto it = columns.find(name);
-        if (it == columns.end()) throw std::runtime_error("Column not found");
+        if (it == columns.end()) throw runtime_error("Column not found");
         return it->second;
     }
 
@@ -482,7 +529,7 @@ public:
      * @param index The index of the row in the source DataFrame.
      * @param targetName The name of the column in this DataFrame.
      */
-    void cloneValue(const std::string& srcName, const DataFrame& srcDf, size_t index, const std::string& targetName) {
+    void cloneValue(const string& srcName, const DataFrame& srcDf, size_t index, const string& targetName) {
         auto targetSeries = getColumnPtr(targetName);
         auto srcSeries = srcDf.getColumnPtr(srcName);
         targetSeries->addFromSeries(srcSeries.get(), index);
@@ -509,7 +556,15 @@ public:
         }
     }
 
-    // Overload by returning a dataframe
+    /**
+     * @brief Deep copy the contents of another DataFrame.
+     * 
+     * This method deep copies the contents of another DataFrame and returns the result as a new DataFrame.
+     * 
+     * @param other The DataFrame to be copied.
+     * @param copyData A flag to indicate whether to copy the data as well.
+     * @return The copied DataFrame.
+     */
     static DataFrame deepCopy(const DataFrame& other, bool copyData = true) {
         DataFrame result;
         result.deepCopyImpl(other, copyData);
@@ -523,7 +578,7 @@ public:
      * The method assumes that the column names of both DataFrames match.
      * 
      * @param other The DataFrame to be concatenated.
-     * @throws std::runtime_error If the column names do not match.
+     * @throws runtime_error If the column names do not match.
      */
     void concat(const DataFrame& other) {
         // Check if the number of columns match
@@ -597,7 +652,7 @@ public:
             // Add the value to the Series, casting it appropriately
             try {
                 series->add(first);
-            } catch (const std::exception &e) {
+            } catch (const exception &e) {
                 cout << "Error while casting and adding value " + convertToString(first) + " to Series: " << e.what() << endl;
                 throw runtime_error("Type mismatch error: Unable to add value to Series.");
             }
@@ -619,7 +674,7 @@ public:
      * @tparam T The type of the value being added.
      * @param index The index of the column.
      * @param first The value to be added.
-     * @throws std::runtime_error if the index is out of bounds or if there is a type mismatch.
+     * @throws runtime_error if the index is out of bounds or if there is a type mismatch.
      */
     template<typename T>
     void addColumnValue(size_t index, T first) {
@@ -637,7 +692,7 @@ public:
             // Add the value to the Series, casting it appropriately
             try {
                 series->add(first);
-            } catch (const std::exception &e) {
+            } catch (const exception &e) {
                 cout << "Error while casting and adding value " + convertToString(first) + " to Series: " << e.what() << endl;
                 throw runtime_error("Type mismatch error: Unable to add value to Series.");
             }
@@ -717,7 +772,15 @@ public:
         return columns[columnNames[columnIndex]]->sum();
     }
 
-    // Overload by name
+    /**
+     * @brief Calculate the sum of a column in the DataFrame.
+     * 
+     * This method calculates the sum of a column in the DataFrame based on the column name.
+     * 
+     * @param columnName The name of the column to calculate the sum for.
+     * @return The sum of the column.
+     * @throws runtime_error If the column does not exist.
+     */
     any sum(const string& columnName) {
         return sum(getColumnIndex(columnName));
     }
@@ -762,7 +825,15 @@ public:
         return countDataFrame;
     }
 
-    // Overload by name
+    /**
+     * @brief Count the occurrences of each value in a column.
+     * 
+     * This method counts the occurrences of each value in a column and returns the result as a new DataFrame.
+     * 
+     * @param columnName The name of the column to count the occurrences for.
+     * @return A DataFrame containing the value counts.
+     * @throws runtime_error If the column does not exist.
+     */
     DataFrame valueCounts(const string& columnName) {
         return valueCounts(getColumnIndex(columnName));
     }
@@ -774,7 +845,7 @@ public:
      * 
      * @param columnIndex The index of the column to sort by.
      * @param ascending The order of sorting (ascending or descending).
-     * @throws std::runtime_error If the column index is out of bounds.
+     * @throws runtime_error If the column index is out of bounds.
      */
     void sortByColumn(size_t columnIndex, bool ascending = true) {
         // Get the column object and type
@@ -782,7 +853,7 @@ public:
         const auto& columnType = column->type();
 
         // Create a vector of pairs to store the index and value of each row
-        std::vector<std::pair<size_t, std::any>> values;
+        vector<pair<size_t, any>> values;
 
         // Iterate through the column and store the index and value of each row
         for (size_t i = 0; i < rowCount; ++i) {
@@ -790,7 +861,7 @@ public:
         }
 
         // Sort the vector of pairs based on the value of the column
-        std::sort(values.begin(), values.end(), [&](const auto& a, const auto& b) {
+        sort(values.begin(), values.end(), [&](const auto& a, const auto& b) {
             if (ascending) {
                 return compareValues(columnType, a.second, b.second, CompareOperation::LESS_THAN);
             } else {
@@ -815,7 +886,16 @@ public:
         deepCopyImpl(sortedDf);
     }
 
-    // Overload by name
+    /**
+     * @brief Sort the DataFrame by a column.
+     *
+     * This method sorts the DataFrame by a column in ascending order.
+     * The method assumes that the column exists in the DataFrame.
+     * 
+     * @param columnName The name of the column to sort by.
+     * @param ascending The order of sorting (ascending or descending).
+     * @throws runtime_error If the column does not exist.
+     */
     void sortByColumn(const string& columnName, bool ascending = true) {
         sortByColumn(getColumnIndex(columnName), ascending);
     }
@@ -826,7 +906,7 @@ public:
      * @param right The right DataFrame to join with.
      * @param keyColumnName The name of the column used as a key for joining.
      * @return A new DataFrame resulting from the left join operation.
-     * @throws std::runtime_error If the key column is not found in either DataFrame.
+     * @throws runtime_error If the key column is not found in either DataFrame.
      */
     DataFrame leftJoin(const DataFrame& right, const string& keyColumnName, const bool dropKeyColumn = false) {
         // Check if the column exists in both DataFrames
@@ -842,7 +922,7 @@ public:
         shared_ptr<ISeries> rightKeyColumn = right.columns.at(keyColumnName);
 
         // Create a map to store the index of each key in the right DataFrame
-        map<std::string, size_t> keyIndexMap;
+        map<string, size_t> keyIndexMap;
         for (size_t i = 0; i < right.rowCount; ++i) {
             keyIndexMap[rightKeyColumn->getStringAtIndex(i)] = i;
         }
@@ -894,7 +974,7 @@ public:
      * @return The type of the column.
      * @throws runtime_error If the column index is out of bounds.
      */
-    const std::type_info& getColumnType(int columnIndex) {
+    const type_info& getColumnType(int columnIndex) {
 
         // Check if the column index is out of bounds
         if (columnIndex >= columnNames.size()) {
@@ -902,12 +982,58 @@ public:
         }
 
         // Check if there is any row in the dataframe
-        if (rowCount == 0) {
-            return typeid(void);
-        } else {
-            return columns[columnNames[columnIndex]]->type();
-        }
+        if (rowCount == 0) return typeid(void);
+        else return columns[columnNames[columnIndex]]->type();
     }
+
+    /**
+     * @brief Merge two DataFrames on an ID column and sum another column.
+     *
+     * This method merges two DataFrames based on an ID column and sums up the values of another column.
+     *
+     * @param df1 The first DataFrame.
+     * @param df2 The second DataFrame.
+     * @param idColumnName The name of the ID column to merge on.
+     * @param sumColumnName The name of the column to sum.
+     * @return A new DataFrame with ID and sum of the specified column.
+     * @throws runtime_error If the ID or sum column is not found or if there are type mismatches.
+     */
+    static DataFrame mergeAndSum(DataFrame& df1, DataFrame& df2, const string& idColumnName, const string& sumColumnName) {
+        // Ensure both DataFrames have the required columns
+        if (df1.columns.find(idColumnName) == df1.columns.end() || df2.columns.find(idColumnName) == df2.columns.end() ||
+            df1.columns.find(sumColumnName) == df1.columns.end() || df2.columns.find(sumColumnName) == df2.columns.end()) {
+            throw runtime_error("Required columns not found in one or both DataFrames.");
+        }
+
+        // Check for type compatibility for summing operations
+        if (df1.columns.at(sumColumnName)->type() != typeid(int) ||
+            df2.columns.at(sumColumnName)->type() != typeid(int)) {
+            throw runtime_error("Sum column must be of type int or double.");
+        }
+
+        // Use a map to accumulate sums based on ID
+        map<string, int> sumMap;
+        for (size_t i = 0; i < df1.getRowCount(); ++i) {
+            string id = df1.columns.at(idColumnName)->getStringAtIndex(i);
+            int value = any_cast<int>(df1.columns.at(sumColumnName)->getDataAtIndex(i));
+            sumMap[id] = sumMap[id] + value;
+        }
+
+        for (size_t i = 0; i < df2.getRowCount(); ++i) {
+            string id = df2.columns.at(idColumnName)->getStringAtIndex(i);
+            int value = any_cast<int>(df2.columns.at(sumColumnName)->getDataAtIndex(i));
+            sumMap[id] = sumMap[id] + value;
+        }
+
+        // Create a new DataFrame to store the result
+        DataFrame result({idColumnName, sumColumnName});
+        for (auto& [id, sum] : sumMap) {
+            result.addRow(id, sum);
+        }
+
+        return result;
+    }
+
 };
 
 
