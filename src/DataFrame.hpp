@@ -855,6 +855,60 @@ public:
     DataFrame valueCounts(const string& columnName) {
         return valueCounts(getColumnIndex(columnName));
     }
+    /**
+     * @brief Sort the DataFrame by a column.
+     *
+     * This method sorts the DataFrame by a column in ascending order.
+     * The method assumes that the column exists in the DataFrame.
+     * 
+     * @param columnIndex The index of the column to sort by.
+     * @param ascending The order of sorting (ascending or descending).
+     * @throws std::runtime_error If the column index is out of bounds.
+     */
+    void sortByColumn(size_t columnIndex, bool ascending = true) {
+        // Get the column object and type
+        auto column = columns[getColumnName(columnIndex)];
+        const auto& columnType = column->type();
+
+        // Create a vector of pairs to store the index and value of each row
+        std::vector<std::pair<size_t, std::any>> values;
+
+        // Iterate through the column and store the index and value of each row
+        for (size_t i = 0; i < rowCount; ++i) {
+            values.push_back({i, column->getDataAtIndex(i)});
+        }
+
+        // Sort the vector of pairs based on the value of the column
+        std::sort(values.begin(), values.end(), [&](const auto& a, const auto& b) {
+            if (ascending) {
+                return compareValues(columnType, a.second, b.second, CompareOperation::LESS_THAN);
+            } else {
+                return compareValues(columnType, a.second, b.second, CompareOperation::GREATER_THAN);
+            }
+        });
+
+        // Create a new DataFrame to store the sorted data
+        DataFrame sortedDf = deepCopy(*this, false);
+
+        // Add the rows to the new DataFrame in the sorted order
+        for (const auto& [index, value] : values) {
+            for (const auto& [name, series] : columns) {
+                sortedDf.columns[name]->addFromSeries(series.get(), index);
+            }
+        }
+
+        // Update the row count
+        sortedDf.rowCount = rowCount;
+
+        // Copy the sorted DataFrame back to the original DataFrame
+        deepCopyImpl(sortedDf);
+    }
+
+    // Overload by name
+    void sortByColumn(const string& columnName, bool ascending = true) {
+        sortByColumn(getColumnIndex(columnName), ascending);
+    }
+
 };
 
 

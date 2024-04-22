@@ -249,6 +249,30 @@ int main() {
         DataFrame valueCounts = dfForCounting.valueCounts("Age");
         valueCounts.print();
 
+        // Test the sortByColumn method
+        cout << "\nOriginal Dataframe: " << endl;
+        DataFrame dfForSorting({"ID", "Age", "Name"});
+        dfForSorting.addRow(1, 20, "John");
+        dfForSorting.addRow(2, 22, "Alice");
+        dfForSorting.addRow(3, 20, "Bob");
+        dfForSorting.addRow(4, 22, "Charlie");
+        dfForSorting.addRow(5, 20, "David");
+        dfForSorting.addRow(6, 22, "Emma");
+        dfForSorting.addRow(7, 20, "Frank");
+        dfForSorting.addRow(8, 21, "Grace");
+        dfForSorting.addRow(9, 21, "Henry");
+        dfForSorting.addRow(10, 21, "Isabella");
+
+        dfForSorting.print();
+
+        cout << "Sorting by Age: " << endl;
+        dfForSorting.sortByColumn("Age");
+        dfForSorting.print();
+
+        cout << "Sorting by Name: " << endl;
+        dfForSorting.sortByColumn("Name");
+        dfForSorting.print();
+
 
 
     } catch (const std::exception& e) {
