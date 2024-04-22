@@ -1,12 +1,15 @@
-#include <iostream>
-#include <dirent.h>
-#include <sys/stat.h>
+// creates a class that receives a path and overrides Observer. It has a method that should return the new files that appeared on the directory since the last time it was called. 
+
+#include "Observer.hpp"
 #include <string>
 #include <vector>
 #include <algorithm>
 #include <mutex>  // for std::mutex
+#include <dirent.h>
+#include <sys/stat.h>
 
-class DirectoryMonitor {
+
+class DirectoryMonitor : public Observer {
 private:
     std::mutex mutex;
     std::vector<std::string> prevFiles;
@@ -60,4 +63,19 @@ public:
 
         return newFiles;
     }
+
+    void updateOnTimeTrigger() override {
+        std::vector<std::string> newFiles = getNewFiles();
+        for (const auto& file : newFiles) {
+            std::cout << "New file appeared: " << file << std::endl;
+        }
+    }
+
+    void updateOnRequestTrigger() override {
+        std::vector<std::string> newFiles = getNewFiles();
+        for (const auto& file : newFiles) {
+            std::cout << "New file appeared: " << file << std::endl;
+        }
+    }
+    
 };
