@@ -909,6 +909,74 @@ public:
         sortByColumn(getColumnIndex(columnName), ascending);
     }
 
+    /**
+     * @brief Left join this DataFrame with another DataFrame on a given key column.
+     * 
+     * @param right The right DataFrame to join with.
+     * @param keyColumnName The name of the column used as a key for joining.
+     * @return A new DataFrame resulting from the left join operation.
+     * @throws std::runtime_error If the key column is not found in either DataFrame.
+     */
+    DataFrame leftJoin(const DataFrame& right, const string& keyColumnName, const bool dropKeyColumn = false) {
+        // Check if the column exists in both DataFrames
+        if (columns.find(keyColumnName) == columns.end() || right.columns.find(keyColumnName) == right.columns.end()) {
+            throw runtime_error("Column not found in both DataFrames.");
+        }
+
+        // Create a new DataFrame to store the result
+        DataFrame result = deepCopy(*this, true);
+
+        // Get the key column of each dataframe
+        auto leftKeyColumn = columns[keyColumnName];
+        auto rightKeyColumn = right.columns.at(keyColumnName);
+
+        // Create a map to store the index of each key in the right DataFrame
+        map<std::string, size_t> keyIndexMap;
+        for (size_t i = 0; i < right.rowCount; ++i) {
+            keyIndexMap[rightKeyColumn->getStringAtIndex(i)] = i;
+        }
+
+        // Add the columns of the right DataFrame to the result
+        for (const auto& [name, series] : right.columns) {
+            // Skip the key column if it is the same as the key column in this DataFrame
+            if (name != keyColumnName) {
+                // Clone, clear the data, and add the column name
+                result.columns[name] = series->clone();
+                result.columns[name]->clear();
+                result.columnNames.push_back(name);
+            }
+        }
+
+        // Add the rows from the right DataFrame to the result based on the key column
+        for (size_t i = 0; i < rowCount; ++i) {
+            string key = leftKeyColumn->getStringAtIndex(i);
+
+            // If the key exists in the right DataFrame, add the row
+            if (keyIndexMap.find(key) != keyIndexMap.end()) {
+                for (const auto& [name, series] : right.columns) {
+                    if (name != keyColumnName) {
+                        result.columns[name]->addFromSeries(series.get(), keyIndexMap[key]);
+                    }
+                }
+            } 
+            // Otherwise, add null values for the columns from the right DataFrame
+            else {
+                // Add null values for the columns from the right DataFrame
+                for (const auto& [name, series] : right.columns) {
+                    if (name != keyColumnName) {
+                        result.columns[name]->addNull();
+                    }
+                }
+            }
+        }
+
+        // Drop the key column if specified
+        if (dropKeyColumn) {
+            result.dropColumn(keyColumnName);
+        }
+
+        return result;
+    }
 };
 
 

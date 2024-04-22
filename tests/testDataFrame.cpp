@@ -273,6 +273,34 @@ int main() {
         dfForSorting.sortByColumn("Name");
         dfForSorting.print();
 
+        cout << endl;
+        cout << "Testing the left join method" << endl;
+
+        DataFrame dfToJoin1({"ID", "Name", "Job"});
+        dfToJoin1.addRow(1, "Alice", "Engineer");
+        dfToJoin1.addRow(2, "Bob", "Doctor");
+        dfToJoin1.addRow(3, "Charlie", "Teacher");
+        dfToJoin1.addRow(4, "David", "Teacher");
+        dfToJoin1.addRow(5, "Emma", "Engineer");
+        dfToJoin1.addRow(6, "Frank", "Doctor");
+        dfToJoin1.addRow(7, "Grace", "Youtuber");
+
+        DataFrame dfToJoin2({"Job", "Salary"});
+        dfToJoin2.addRow("Engineer", 100000);
+        dfToJoin2.addRow("Doctor", 150000);
+        dfToJoin2.addRow("Teacher", 80000);
+
+        // Perform the left join
+        DataFrame joinedDf = dfToJoin1.leftJoin(dfToJoin2, "Job");
+
+        // Print the result
+        cout << "Left DataFrame: " << endl;
+        dfToJoin1.print();
+        cout << "Right DataFrame: " << endl;
+        dfToJoin2.print();
+        cout << "Joined DataFrame: " << endl;
+        joinedDf.print();
+        joinedDf.printColumnTypes();
 
 
     } catch (const std::exception& e) {
