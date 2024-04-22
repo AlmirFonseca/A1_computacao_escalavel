@@ -927,8 +927,8 @@ public:
         DataFrame result = deepCopy(*this, true);
 
         // Get the key column of each dataframe
-        auto leftKeyColumn = columns[keyColumnName];
-        auto rightKeyColumn = right.columns.at(keyColumnName);
+        shared_ptr<ISeries> leftKeyColumn = columns[keyColumnName];
+        shared_ptr<ISeries> rightKeyColumn = right.columns.at(keyColumnName);
 
         // Create a map to store the index of each key in the right DataFrame
         map<std::string, size_t> keyIndexMap;
@@ -951,21 +951,17 @@ public:
         for (size_t i = 0; i < rowCount; ++i) {
             string key = leftKeyColumn->getStringAtIndex(i);
 
-            // If the key exists in the right DataFrame, add the row
-            if (keyIndexMap.find(key) != keyIndexMap.end()) {
-                for (const auto& [name, series] : right.columns) {
-                    if (name != keyColumnName) {
-                        result.columns[name]->addFromSeries(series.get(), keyIndexMap[key]);
-                    }
-                }
-            } 
-            // Otherwise, add null values for the columns from the right DataFrame
-            else {
-                // Add null values for the columns from the right DataFrame
-                for (const auto& [name, series] : right.columns) {
-                    if (name != keyColumnName) {
-                        result.columns[name]->addNull();
-                    }
+            // Iterate through each column in the right DataFrame
+            for (const auto& [name, series] : right.columns) {
+                // Skip the key column
+                if (name == keyColumnName) continue;
+                
+                // If the key exists in the right DataFrame, add the row
+                if (keyIndexMap.find(key) != keyIndexMap.end()) {
+                    result.columns[name]->addFromSeries(series.get(), keyIndexMap[key]);
+                } 
+                else { // Otherwise, add null values for the columns from the right DataFrame
+                    result.columns[name]->addNull();
                 }
             }
         }
