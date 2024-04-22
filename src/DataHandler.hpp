@@ -6,6 +6,7 @@
 #include <mutex>
 #include <chrono>
 #include <string>
+#include <vector>
 #include "DataFrame.hpp"
 #include "Queue.hpp"
 
@@ -18,18 +19,24 @@
 class DataHandler {
 protected:
     Queue<DataFrame*> *inputQueue;
-    Queue<DataFrame*> *outputQueue;
+    std::vector<Queue<DataFrame*>*> outputQueues;
 
 public:
     /**
      * @brief Construct a new DataHandler object.
      * 
      * @param inputQueue Reference to the input queue.
-     * @param outputQueue Reference to the output queue.
+     * @param outputQueues Reference to the output queues.
      */
     // Constructor
-    DataHandler(Queue<DataFrame*> *inputQueue, Queue<DataFrame*> *outputQueue)
-        : inputQueue(inputQueue), outputQueue(outputQueue) {}
+    DataHandler(Queue<DataFrame*> *inputQueue, std::vector<Queue<DataFrame*>*> outputQueues)
+        : inputQueue(inputQueue), outputQueues(outputQueues) {}
+
+    void pushToOutputQueues(DataFrame* df) {
+        for (auto& outputQueue : outputQueues) {
+            outputQueue->push(df);
+        }
+    }
 };
 
 /**
@@ -50,8 +57,8 @@ public:
      * @param filterValue The value to filter.
      * @param op The operation to compare the column value with the filter value.
      */
-    FilterHandler(Queue<DataFrame*> *inputQueue, Queue<DataFrame*> *outputQueue)
-        : DataHandler(inputQueue, outputQueue) {};
+    FilterHandler(Queue<DataFrame*> *inputQueue, std::vector<Queue<DataFrame*>*> outputQueues)
+        : DataHandler(inputQueue, outputQueues) {};
 
     void filterByColumn(std::string columnName, const std::any& filterValue, CompareOperation op) {
         while(true) {
@@ -67,7 +74,7 @@ public:
             df->filterByColumn(columnName, filterValue, op);
 
             // Write the DataFrame to the output queue
-            outputQueue->push(df);
+            pushToOutputQueues(df);
         }
     }
 };
@@ -87,8 +94,8 @@ public:
      * @param outputQueue Reference to the output queue.
      * @param ColunmName The name of the column to count.
      */
-    ValueCountHandler(Queue<DataFrame*> *inputQueue, Queue<DataFrame*> *outputQueue)
-        : DataHandler(inputQueue, outputQueue) {};
+    ValueCountHandler(Queue<DataFrame*> *inputQueue, std::vector<Queue<DataFrame*>*> outputQueues)
+        : DataHandler(inputQueue, outputQueues) {};
 
     void countByColumn(std::string columnName) {
         while(true) {
@@ -104,7 +111,7 @@ public:
             df->valueCounts(columnName);
 
             // Write the DataFrame to the output queue
-            outputQueue->push(df);
+            pushToOutputQueues(df);
         }
     }
 };
@@ -127,8 +134,8 @@ public:
      * @param KeyColunmName The name of the column to join.
      * @param dropKeyColumn True if the key column should be dropped, false otherwise.
      */
-    JoinHandler(Queue<DataFrame*> *inputQueue, Queue<DataFrame*> *outputQueue)
-        : DataHandler(inputQueue, outputQueue) {};
+    JoinHandler(Queue<DataFrame*> *inputQueue, std::vector<Queue<DataFrame*>*> outputQueues)
+        : DataHandler(inputQueue, outputQueues) {};
 
     void join(DataFrame& dfRight, std::string keyColumnName, bool dropKeyColumn=false) {
         while(true) {
@@ -144,7 +151,7 @@ public:
             dfLeft->leftJoin(dfRight, keyColumnName, dropKeyColumn);
 
             // Write the DataFrame to the output queue
-            outputQueue->push(dfLeft);
+            pushToOutputQueues(dfLeft);
         }
     }
 };
@@ -166,8 +173,8 @@ public:
      * @param ColunmName The name of the column to sort.
      * @param ascending True if the data should be sorted in ascending order, false otherwise.
      */
-    SortHandler(Queue<DataFrame*> *inputQueue, Queue<DataFrame*> *outputQueue)
-        : DataHandler(inputQueue, outputQueue) {};
+    SortHandler(Queue<DataFrame*> *inputQueue, std::vector<Queue<DataFrame*>*> outputQueues)
+        : DataHandler(inputQueue, outputQueues) {};
 
     void sortByColumn(std::string columnName, bool ascending=true) {
         while(true) {
@@ -183,7 +190,7 @@ public:
             df->sortByColumn(columnName, ascending);
 
             // Write the DataFrame to the output queue
-            outputQueue->push(df);
+            pushToOutputQueues(df);
         }
     }
 };    
