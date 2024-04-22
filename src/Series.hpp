@@ -25,20 +25,20 @@ using namespace std;
  * @return The string representation of the value.
  */
 template<typename T>
-std::string convertToString(const T& value) {
-    if constexpr (std::is_same_v<T, std::string>) {
-        return value; // Directly return std::string values
-    } else if constexpr (std::is_same_v<T, const char*> || std::is_same_v<T, char*>) {
-        return std::string(value); // Convert C-style string to std::string
-    } else if constexpr (std::is_same_v<T, char>) {
+string convertToString(const T& value) {
+    if constexpr (is_same_v<T, string>) {
+        return value; // Directly return string values
+    } else if constexpr (is_same_v<T, const char*> || is_same_v<T, char*>) {
+        return string(value); // Convert C-style string to string
+    } else if constexpr (is_same_v<T, char>) {
         // Handle char type specifically to avoid treating it as an integer
-        return std::string(1, value);
-    } else if constexpr (std::is_arithmetic_v<T>) {
-        return std::to_string(value); // Use std::to_string for numeric types
+        return string(1, value);
+    } else if constexpr (is_arithmetic_v<T>) {
+        return to_string(value); // Use to_string for numeric types
     } else {
-        // Fallback for types not directly supported by std::to_string
-        // This requires a way to convert custom types to std::string
-        static_assert(std::is_arithmetic_v<T> || std::is_same_v<T, char>, "Type not supported for conversion to std::string.");
+        // Fallback for types not directly supported by to_string
+        // This requires a way to convert custom types to string
+        static_assert(is_arithmetic_v<T> || is_same_v<T, char>, "Type not supported for conversion to string.");
         return ""; // Placeholder return for unsupported types to satisfy all control paths
     }
 }
@@ -119,7 +119,7 @@ public:
      * 
      * @return A shared pointer to the cloned series.
      */
-    virtual std::shared_ptr<ISeries> clone() const = 0;
+    virtual shared_ptr<ISeries> clone() const = 0;
 
     /**
      * @brief Clears the series data.
@@ -256,7 +256,7 @@ public:
         if (index < data.size()) {
             data.erase(data.begin() + index);
         } else {
-            throw std::out_of_range("Index out of range for Series removal.");
+            throw out_of_range("Index out of range for Series removal.");
         }
     }
     
@@ -303,12 +303,16 @@ public:
      * The series name, type, size, and data are printed to the standard output.
      */
     void print() const override {
-        cout << "Series name: " << name << "\nSeries type: " << type().name()
-             << "\nSeries size: " << size() << "\nSeries data: ";
+        cout << endl << "----------------" << endl;
+        cout << "Name: " << name << endl;
+        cout << "Type: " << type().name() << endl;
+        cout << "Size: " << size() << endl;
+        cout << "Data: " << endl;
+        cout << "################" << endl;
         for (const auto& value : data) {
-            cout << any_cast<const T&>(value) << " "; // This requires that T is stream-insertable
+            cout << any_cast<const T&>(value) << endl; // This requires that T is stream-insertable
         }
-        cout << endl;
+        cout << "----------------" << endl;
     }
 
     /**
@@ -327,7 +331,7 @@ public:
         if (casted) {
             add(casted->getData()[index]);
         } else {
-            throw std::runtime_error("Type mismatch between series");
+            throw runtime_error("Type mismatch between series");
         }
     }
 
@@ -336,8 +340,8 @@ public:
      * 
      * @return A shared pointer to the cloned series.
      */
-    std::shared_ptr<ISeries> clone() const override {
-        auto clonedSeries = std::make_shared<Series<T>>(name);
+    shared_ptr<ISeries> clone() const override {
+        auto clonedSeries = make_shared<Series<T>>(name);
         clonedSeries->data = data; // Deep copy the data
         return clonedSeries;
     }
@@ -357,12 +361,12 @@ public:
      * @return The sum of the elements in the series.
      */
     any sum() const override {
-    if constexpr (std::is_arithmetic<T>::value) {
-        return std::accumulate(data.begin(), data.end(), T(0)); // Correct usage of std::accumulate for arithmetic types
-    } else {
-        throw std::runtime_error("Sum operation not supported for non-arithmetic types.");
+        if constexpr (is_arithmetic<T>::value) {
+            return accumulate(data.begin(), data.end(), T(0));
+        } else {
+            throw runtime_error("Sum operation not supported for non-arithmetic types.");
+        }
     }
-}
 
     /**
      * @brief Generates a new series with unique values.
@@ -372,7 +376,7 @@ public:
      * @return A shared pointer to the new series with unique values.
      */
     shared_ptr<Series<T>> unique() const {
-        std::unordered_set<T> seen;  // To keep track of seen values
+        unordered_set<T> seen;  // To keep track of seen values
         // Create a new series to store unique values
         shared_ptr<Series<T>> uniqueSeries = make_shared<Series<T>>(name + " (Unique)");
 

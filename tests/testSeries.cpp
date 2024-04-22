@@ -90,10 +90,10 @@ int main() {
 
     auto uniqueSeries = mySeries.unique(); // Auto = shared_ptr<Series<int>>
 
-    std::cout << "Original Series:" << std::endl;
+    cout << "Original Series:" << endl;
     mySeries.print();
 
-    std::cout << "Unique Series:" << std::endl;
+    cout << "Unique Series:" << endl;
     uniqueSeries->print();
 
     // Test the addNull method
