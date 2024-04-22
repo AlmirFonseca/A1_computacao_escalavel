@@ -11,6 +11,7 @@
 #include <typeinfo>
 #include <vector>
 #include <numeric>
+#include <unordered_set>
 
 using namespace std;
 
@@ -346,6 +347,28 @@ public:
     T sum() const {
         static_assert(std::is_arithmetic<T>::value, "Sum operation not supported for non-arithmetic types.");
         return std::accumulate(data.begin(), data.end(), T{});
+    }
+
+    /**
+     * @brief Generates a new series with unique values.
+     * 
+     * This function generates a new series with unique values from the current series.
+     * 
+     * @return A shared pointer to the new series with unique values.
+     */
+    shared_ptr<Series<T>> unique() const {
+        std::unordered_set<T> seen;  // To keep track of seen values
+        // Create a new series to store unique values
+        shared_ptr<Series<T>> uniqueSeries = make_shared<Series<T>>(name + " (Unique)");
+
+        // Iterate over the data and add unique values to the new series
+        for (const auto& value : data) {
+            if (seen.insert(value).second) {  // .second is true if the insert was successful (i.e., the value was not already present)
+                uniqueSeries->add(value);
+            }
+        }
+
+        return uniqueSeries;
     }
 };
 
