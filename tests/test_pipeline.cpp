@@ -16,105 +16,157 @@ int main(int argc, char* argv[]) {
     repo->setExtractionStrategy("txt");
     string csv_location = "../mock/mock_files/log/";
 
-    // create a queue of dataframes
-    Queue<DataFrame*> queueIn0(10);
-    Queue<DataFrame*> queueIn1(10);
-
-    for (int i = 1; i <= 10; i++) {
-        DataFrame* df = repo->extractData(csv_location + to_string(i) + "log_simulation.txt", ';');
-        queueIn0.push(df);
-
-        // deep copy of the dataframe
-        DataFrame* df_copy = new DataFrame;
-        *df_copy = DataFrame::deepCopy(*df);
-        queueIn1.push(df_copy);
-    }
-
-    // Create another queue of dataframes
-    Queue<DataFrame*> queueUser(10);
-    FilterHandler handler(&queueIn0, &queueUser);
-
-    Queue<DataFrame*> queueView(10);
-    FilterHandler handler2(&queueUser, &queueView);
-
-    Queue<DataFrame*> queueCountView(10);
-    CountLinesHandler handler3(&queueView, &queueCountView);
-
-    Queue<DataFrame*> queueAudi(10);
-    FilterHandler handler01(&queueIn1, &queueAudi);
-
-    Queue<DataFrame*> queueProdView(10);
-    ValueCountHandler ProdView(&queueView, &queueProdView);
-
-
-    
     // Create a thread pool with 4 threads
     ThreadPool pool(4);
 
-    // Add tasks to the thread pool
-    pool.addTask([&handler]() {
-        handler.filterByColumn("type", string("User"), CompareOperation::EQUAL);
-    });
+    // create a queue of dataframes
+    Queue<DataFrame*> queueInDC1(10);
+    Queue<DataFrame*> queueInDC2(10);
 
-    pool.addTask([&handler2]() {
-        handler2.filterByColumn("extra_1", string("ZOOM"), CompareOperation::EQUAL);
-    });
+    for (int i = 1; i <= 10; i++) {
+        DataFrame* df = repo->extractData(csv_location + to_string(i) + "log_simulation.txt", ';');
+        queueInDC1.push(df);
 
-    pool.addTask([&handler3]() {
-        handler3.countLines();
-    });
-
-    pool.addTask([&handler01]() {
-        handler01.filterByColumn("type", string("Audit"), CompareOperation::EQUAL);
-    });
-
-    pool.addTask([&ProdView]() {
-        ProdView.valueCount("extra_2");
-    });
-
-
-    while (queueCountView.isEmpty() || queueProdView.isEmpty()) {
-        std::this_thread::sleep_for(std::chrono::seconds(1));
+        // deep copy of the dataframe
+        DataFrame* dfCopy = new DataFrame;
+        *dfCopy = DataFrame::deepCopy(*df);
+        queueInDC2.push(dfCopy);
     }
+
+    // Número de produtos visualizados por minuto:
+    Queue<DataFrame*> queueUser(10);
+    vector<Queue<DataFrame*>*> outputQueuesUser = {&queueUser};
+    FilterHandler filterUser(&queueInDC1, outputQueuesUser);
+    pool.addTask([&filterUser]() {
+        filterUser.filterByColumn("type", string("User"), CompareOperation::EQUAL);
+    });
+
+    Queue<DataFrame*> queueView(10);
+    Queue<DataFrame*> queueView1(10);
+    vector<Queue<DataFrame*>*> outputQueuesView = {&queueView, &queueView1};
+    FilterHandler filterView(&queueUser, outputQueuesView);
+    pool.addTask([&filterView]() {
+        filterView.filterByColumn("extra_1", string("ZOOM"), CompareOperation::EQUAL);
+    });
+
+    Queue<DataFrame*> queueCountView(10);
+    vector<Queue<DataFrame*>*> outputQueuesCountView = {&queueCountView};
+    CountLinesHandler CountView(&queueView, outputQueuesCountView);
+    pool.addTask([&CountView]() {
+        CountView.countLines();
+    });
+    
+
+    // Número de produtos comprados por minuto:
+    Queue<DataFrame*> queueAuditoria(10);
+    vector<Queue<DataFrame*>*> outputQueuesAuditoria = {&queueAuditoria};
+    FilterHandler FilterAuditoria(&queueInDC2, outputQueuesAuditoria);
+    pool.addTask([&FilterAuditoria]() {
+        FilterAuditoria.filterByColumn("type", string("Audit"), CompareOperation::EQUAL);
+    });
+
+    Queue<DataFrame*> queueBuy(10);
+    Queue<DataFrame*> queueBuy1(10);
+    Queue<DataFrame*> queueBuy2(10);
+    vector<Queue<DataFrame*>*> outputQueuesBuy = {&queueBuy, &queueBuy1, &queueBuy2};
+    FilterHandler filterBuy(&queueAuditoria, outputQueuesBuy);
+    pool.addTask([&filterBuy]() {
+        filterBuy.filterByColumn("extra_1", string("BUY"), CompareOperation::EQUAL);
+    });
+
+    Queue<DataFrame*> queueCountBuy(10);
+    vector<Queue<DataFrame*>*> outputQueuesCountBuy = {&queueCountBuy};
+    CountLinesHandler CountBuy(&queueBuy, outputQueuesCountBuy);
+    pool.addTask([&CountBuy]() {
+        CountBuy.countLines();
+    });
+
+
+    // Número de usuários únicos visualizando cada produto por minuto
+    Queue<DataFrame*> queueProdView(10);
+    Queue<DataFrame*> queueProdView1(10);
+    vector<Queue<DataFrame*>*> outputQueuesProdView = {&queueProdView, &queueProdView1};
+    ValueCountHandler ProdView(&queueView1, outputQueuesProdView);
+    pool.addTask([&ProdView]() {
+        ProdView.countByColumn("extra_2");
+    });
+
+
+
+    // Ranking de produtos mais comprados na última hora
+    Queue<DataFrame*> queueProdBuy(10);
+    vector<Queue<DataFrame*>*> outputQueuesProdBuy = {&queueProdBuy};
+    ValueCountHandler ProdBuy(&queueBuy1, outputQueuesProdBuy);
+    pool.addTask([&ProdBuy]() {
+        ProdBuy.countByColumn("extra_2");
+    });
+
+    Queue<DataFrame*> queueBuyRanking(10);
+    vector<Queue<DataFrame*>*> outputQueuesBuyRanking = {&queueBuyRanking};
+    SortHandler SortBuy(&queueProdBuy, outputQueuesBuyRanking);
+    pool.addTask([&SortBuy]() {
+        SortBuy.sortByColumn("Count");
+    });
+
+
+    // Ranking de produtos mais visualizados na última hora
+    Queue<DataFrame*> queueViewRanking(10);
+    vector<Queue<DataFrame*>*> outputQueuesViewRanking = {&queueViewRanking};
+    SortHandler SortView(&queueProdView1, outputQueuesViewRanking);
+    pool.addTask([&SortView]() {
+        SortView.sortByColumn("Count");
+    });
+
+    // Quantidade média de visualizações de um produto antes de efetuar uma compra
+    // Queue<DataFrame*> queueViewBuy(10);
+    // JoinHandler JoinViewBuy(&queueViewRanking, &queueBuyRanking, &queueViewBuy);
+
+
+    // Número de produtos vendidos sem disponibilidade no estoque
+    // Queue<DataFrame*> queueBuyStock(10);
+    // vector<Queue<DataFrame*>*> outputQueuesBuyStock = {&queueBuyStock};
+    // JoinHandler JoinBuyStock(&queueBuy2, outputQueuesBuyStock);
+
+    vector<Queue<DataFrame*>*> outputQueuesPipeline = {&queueCountView, &queueCountBuy, &queueProdView, &queueBuyRanking, &queueViewRanking};
 
     repo->setLoadStrategy("csv");
-    int i = 0;
-    DataFrame* df_main = queueCountView.pop();
-    while (!queueCountView.isEmpty()) {
-        DataFrame* df = queueCountView.pop();
-        df_main->concat(*df);
+
+    for (int i = 0; i < 5; i++) {
+        while (outputQueuesPipeline[i]->isEmpty())
+        {
+            std::this_thread::sleep_for(std::chrono::seconds(1));
+        }
+        DataFrame* df_main = outputQueuesPipeline[i]->pop();
+        while (!outputQueuesPipeline[i]->isEmpty())
+        {
+            DataFrame* df = outputQueuesPipeline[i]->pop();
+            if (i < 2){
+                df_main->concat(*df);
+            }
+            else{
+                *df_main = DataFrame::mergeAndSum(*df_main, *df, "Value", "Count");
+            }
+        }
+        if (i < 2){
+            int sum = any_cast<int>(df_main->sum("count"));
+            delete df_main;
+            df_main = new DataFrame({"sum"});
+            df_main->addRow(sum);
+        }
+        string filename = "output" + to_string(i+1) + ".csv";
+        repo->loadData(*df_main, filename);
     }
+    
+    // Trigger* trigger = new TimerTrigger(std::chrono::seconds(5));
+    // trigger->addObserver(std::make_shared<DataRepo>(*repo));
 
-    // Sum the DataFrame
-    int sum = any_cast<int>(df_main->sum("count"));
+    // trigger->activate();
 
-    // Create a new DataFrame with the sum
-    DataFrame* sumDf = new DataFrame({"sum"});
+    // while (true) {
+    //     std::this_thread::sleep_for(std::chrono::seconds(1));
+    // }
 
-    sumDf->addRow(sum);
-
-    repo->setExtractDf(sumDf);
-    repo->setLoadFileName("output1.csv");
-
-    DataFrame* df_main2 = queueProdView.pop();
-    while (!queueProdView.isEmpty()) {
-        DataFrame* df = queueProdView.pop();
-        df_main2->concat(*df);
-    }
-
-    df_main2->print();
-
-
-    Trigger* trigger = new TimerTrigger(std::chrono::seconds(5));
-    trigger->addObserver(std::make_shared<DataRepo>(*repo));
-
-    trigger->activate();
-
-    while (true) {
-        std::this_thread::sleep_for(std::chrono::seconds(1));
-    }
-
-    trigger->deactivate();
+    // trigger->deactivate();
 
     return 0;
 }

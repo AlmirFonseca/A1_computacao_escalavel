@@ -32,12 +32,56 @@ public:
     DataHandler(Queue<DataFrame*> *inputQueue, std::vector<Queue<DataFrame*>*> outputQueues)
         : inputQueue(inputQueue), outputQueues(outputQueues) {}
 
+    /**
+     * @brief Push a DataFrame to the output queues.
+     *
+     * Creates a deep copy of the DataFrame and pushes it to the output queues.
+     * 
+     * @param df The DataFrame to push.
+     */
     void pushToOutputQueues(DataFrame* df) {
         for (auto& outputQueue : outputQueues) {
-            outputQueue->push(df);
+            DataFrame* dfCopy = new DataFrame;
+            *dfCopy = DataFrame::deepCopy(*df);
+            outputQueue->push(dfCopy);
+        }
+        delete df;
+    }
+};
+
+/**
+ * @brief Class for counting the number of lines in a DataFrame.
+ * 
+ * This class is a subclass of DataHandler.
+ * It counts the number of lines in a DataFrame.
+ */
+class CountLinesHandler : public DataHandler {
+public:
+    CountLinesHandler(Queue<DataFrame*> *inputQueue, std::vector<Queue<DataFrame*>*> outputQueues)
+        : DataHandler(inputQueue, outputQueues) {};
+
+    void countLines() {
+        while(true) {
+            if (inputQueue->isEmpty()) {
+                break;
+            }
+
+            // Read the DataFrame from the input queue
+            DataFrame* df = inputQueue->pop();
+
+            // Count the lines in the DataFrame
+            int lines = df->getRowCount();
+
+            // Create a new DataFrame with the count
+            DataFrame* countDf = new DataFrame({"count"});
+            countDf->addRow(lines);
+
+            // Write the DataFrame to the output queues
+            pushToOutputQueues(countDf);
         }
     }
 };
+
 
 /**
  * @brief Class for filtering data in a DataFrame.
@@ -108,10 +152,11 @@ public:
             DataFrame* df = inputQueue->pop();
 
             // Count the values in the DataFrame
-            df->valueCounts(columnName);
+            DataFrame* countDf = new DataFrame();
+            *countDf = df->valueCounts(columnName);
 
             // Write the DataFrame to the output queue
-            pushToOutputQueues(df);
+            pushToOutputQueues(countDf);
         }
     }
 };
@@ -148,10 +193,12 @@ public:
             DataFrame* dfLeft = inputQueue->pop();
 
             // Join the DataFrames
-            dfLeft->leftJoin(dfRight, keyColumnName, dropKeyColumn);
+            DataFrame* dfJoined = new DataFrame();
+            *dfJoined = dfLeft->leftJoin(dfRight, keyColumnName, dropKeyColumn);
+
 
             // Write the DataFrame to the output queue
-            pushToOutputQueues(dfLeft);
+            pushToOutputQueues(dfJoined);
         }
     }
 };
