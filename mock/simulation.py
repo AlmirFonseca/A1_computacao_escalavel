@@ -248,7 +248,7 @@ class Simulation:
                 purchase_order = self.__generate_purchase_order(user, product, quantity)
                 
                 for _ in range(quantity):
-                    mesage = f";Audit;{user};{purchase_order.product_id}\n"
+                    mesage = f";Audit;{user};BUY;{purchase_order.product_id}\n"
                     self.__add_message_to_log(mesage)
 
                 self.__decrease_stock(product, quantity)
