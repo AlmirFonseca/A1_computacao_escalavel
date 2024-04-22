@@ -52,17 +52,16 @@ string convertToString(const T& value) {
  */
 class ISeries {
 public:
+
+    /**
+     * @brief Constructor for the ISeries class.
+     */
+    ISeries() = default;
+
     /**
      * @brief Destructor for the ISeries class.
      */
     virtual ~ISeries() {}
-
-    /**
-     * @brief Adds a value to the series.
-     * 
-     * @param value The value to be added.
-     */
-    virtual void add(const any& value) = 0;
 
     /**
      * @brief Returns the type information of the series.
@@ -79,9 +78,16 @@ public:
     virtual size_t size() const = 0;
 
     /**
-     * @brief Prints the series.
+     * @brief Adds a value to the series.
+     * 
+     * @param value The value to be added.
      */
-    virtual void print() const = 0;
+    virtual void add(const any& value) = 0;
+
+    /**
+     * @brief Adds a null value to the series, according to the type of the series.
+     */
+    virtual void addNull() = 0;
 
     /**
      * @brief Removes the data at the specified index in the series.
@@ -89,6 +95,19 @@ public:
      * @param index The index of the data to remove.
      */
     virtual void removeAtIndex(size_t index) = 0;
+
+    /**
+     * @brief Clears the series data.
+     */
+    virtual void clear() = 0;
+
+    /**
+     * @brief Returns the data at the specified index in the series.
+     * 
+     * @param index The index of the data to be accessed.
+     * @return The data at the specified index in the series.
+     */
+    virtual any getDataAtIndex(size_t index) const = 0;
 
     /**
      * @brief Returns a string representation of the data at the specified index in the series.
@@ -99,13 +118,17 @@ public:
     virtual string getStringAtIndex(size_t index) const = 0;
 
     /**
-     * @brief Returns the data at the specified index in the series.
+     * @brief Computes the sum of the elements in the series.
      * 
-     * @param index The index of the data to be accessed.
-     * @return The data at the specified index in the series.
+     * @return The sum of the elements in the series.
      */
-    virtual any getDataAtIndex(size_t index) const = 0;
+    virtual any sum() const = 0;
 
+    /**
+     * @brief Prints the series.
+     */
+    virtual void print() const = 0;
+    
     /**
      * @brief Adds a value to the series from another series.
      * 
@@ -121,22 +144,6 @@ public:
      */
     virtual shared_ptr<ISeries> clone() const = 0;
 
-    /**
-     * @brief Clears the series data.
-     */
-    virtual void clear() = 0;
-
-    /**
-     * @brief Computes the sum of the elements in the series.
-     * 
-     * @return The sum of the elements in the series.
-     */
-    virtual any sum() const = 0;
-
-    /**
-     * @brief Adds a null value to the series.
-     */
-    virtual void addNull() = 0;
 };
 
 
@@ -161,6 +168,58 @@ public:
     Series(const string& name) : name(name) {}
 
     /**
+     * @brief Destructor for the Series class.
+     */
+    ~Series() {
+        data.clear();
+    }
+
+    /**
+     * @brief Returns the name of the series.
+     * 
+     * @return The name of the series.
+     */
+    const string& getName() const {
+        return name;
+    }
+
+    /**
+     * @brief Sets the name of the series.
+     * 
+     * @param name The name of the series.
+     */
+    void setName(const string& name) {
+        this->name = name;
+    }
+
+    /**
+     * @brief Returns the size of the series.
+     * 
+     * @return The size of the series.
+     */
+    size_t size() const override {
+        return data.size();
+    }
+    
+    /**
+     * @brief Returns the type information of the series.
+     * 
+     * @return The type information of the series.
+     */
+    const type_info& type() const override {
+        return typeid(T);
+    }
+
+    /**
+     * @brief Returns the data stored in the series.
+     * 
+     * @return The data stored in the series.
+     */
+    const vector<T>& getData() const {
+        return data;
+    }
+
+    /**
      * @brief Adds a value to the series.
      * 
      * This function adds a value to the series after performing type checking.
@@ -180,50 +239,34 @@ public:
             throw runtime_error("Type mismatch error: Unable to add value to Series " + name + " (expected " + string(type().name()) + ", received " + value.type().name() + ")");
         }
     }
+    
+    /**
+     * @brief Adds a null value to the series, according to the type of the series.
+     */
+    void addNull() {
+        data.push_back(T());
+    }
+    
 
     /**
-     * @brief Returns the type information of the series.
+     * @brief Removes the data at the specified index in the series.
      * 
-     * @return The type information of the series.
+     * @param index The index of the data to be removed.
+     * @throws out_of_range if the index is out of range.
      */
-    const type_info& type() const override {
-        return typeid(T);
+    void removeAtIndex(size_t index) {
+        if (index < data.size()) {
+            data.erase(data.begin() + index);
+        } else {
+            throw out_of_range("Index out of range for Series removal.");
+        }
     }
 
     /**
-     * @brief Returns the size of the series.
-     * 
-     * @return The size of the series.
+     * @brief Clears the series data.
      */
-    size_t size() const override {
-        return data.size();
-    }
-
-    /**
-     * @brief Sets the name of the series.
-     * 
-     * @param name The name of the series.
-     */
-    void setName(const string& name) {
-        this->name = name;
-    }
-
-    /**
-     * @brief Returns the name of the series.
-     * 
-     * @return The name of the series.
-     */
-    const string& getName() const {
-        return name;
-    }
-
-    /**
-     * @brief Returns the data stored in the series.
-     * 
-     * @return The data stored in the series.
-     */
-    const vector<T>& getData() const {
-        return data;
+    void clear() override {
+        data.clear();
     }
 
     /**
@@ -247,17 +290,17 @@ public:
     }
 
     /**
-     * @brief Removes the data at the specified index in the series.
+     * @brief Returns the data at the specified index in the series.
      * 
-     * @param index The index of the data to be removed.
+     * @param index The index of the data to be accessed.
+     * @return The data at the specified index in the series.
      * @throws out_of_range if the index is out of range.
      */
-    void removeAtIndex(size_t index) {
-        if (index < data.size()) {
-            data.erase(data.begin() + index);
-        } else {
-            throw out_of_range("Index out of range for Series removal.");
+    any getDataAtIndex(size_t index) const override {
+        if (index >= data.size()) {
+            throw out_of_range("Index out of range");
         }
+        return data[index];
     }
     
     /**
@@ -284,17 +327,40 @@ public:
     }
 
     /**
-     * @brief Returns the data at the specified index in the series.
+     * @brief Computes the sum of the elements in the series.
      * 
-     * @param index The index of the data to be accessed.
-     * @return The data at the specified index in the series.
-     * @throws out_of_range if the index is out of range.
+     * This function computes the sum of the elements in the series. It is only available for arithmetic types.
+     * 
+     * @return The sum of the elements in the series.
      */
-    any getDataAtIndex(size_t index) const override {
-        if (index >= data.size()) {
-            throw out_of_range("Index out of range");
+    any sum() const override {
+        if constexpr (is_arithmetic<T>::value) {
+            return accumulate(data.begin(), data.end(), T(0));
+        } else {
+            throw runtime_error("Sum operation not supported for non-arithmetic types.");
         }
-        return data[index];
+    }
+
+    /**
+     * @brief Generates a new series with unique values.
+     * 
+     * This function generates a new series with unique values from the current series.
+     * 
+     * @return A shared pointer to the new series with unique values.
+     */
+    shared_ptr<Series<T>> unique() const {
+        unordered_set<T> seen;  // To keep track of seen values
+        // Create a new series to store unique values
+        shared_ptr<Series<T>> uniqueSeries = make_shared<Series<T>>(name + " (Unique)");
+
+        // Iterate over the data and add unique values to the new series
+        for (const auto& value : data) {
+            if (seen.insert(value).second) {  // .second is true if the insert was successful (i.e., the value was not already present)
+                uniqueSeries->add(value);
+            }
+        }
+
+        return uniqueSeries;
     }
 
     /**
@@ -344,54 +410,6 @@ public:
         auto clonedSeries = make_shared<Series<T>>(name);
         clonedSeries->data = data; // Deep copy the data
         return clonedSeries;
-    }
-
-    /**
-     * @brief Clears the series data.
-     */
-    void clear() override {
-        data.clear();
-    }
-
-    /**
-     * @brief Computes the sum of the elements in the series.
-     * 
-     * This function computes the sum of the elements in the series. It is only available for arithmetic types.
-     * 
-     * @return The sum of the elements in the series.
-     */
-    any sum() const override {
-        if constexpr (is_arithmetic<T>::value) {
-            return accumulate(data.begin(), data.end(), T(0));
-        } else {
-            throw runtime_error("Sum operation not supported for non-arithmetic types.");
-        }
-    }
-
-    /**
-     * @brief Generates a new series with unique values.
-     * 
-     * This function generates a new series with unique values from the current series.
-     * 
-     * @return A shared pointer to the new series with unique values.
-     */
-    shared_ptr<Series<T>> unique() const {
-        unordered_set<T> seen;  // To keep track of seen values
-        // Create a new series to store unique values
-        shared_ptr<Series<T>> uniqueSeries = make_shared<Series<T>>(name + " (Unique)");
-
-        // Iterate over the data and add unique values to the new series
-        for (const auto& value : data) {
-            if (seen.insert(value).second) {  // .second is true if the insert was successful (i.e., the value was not already present)
-                uniqueSeries->add(value);
-            }
-        }
-
-        return uniqueSeries;
-    }
-
-    void addNull() {
-        data.push_back(T());
     }
 };
 
