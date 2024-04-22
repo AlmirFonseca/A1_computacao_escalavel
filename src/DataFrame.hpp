@@ -805,6 +805,51 @@ public:
     any sum(const string& columnName) {
         return sum(getColumnIndex(columnName));
     }
+
+    /**
+     * @brief Count the occurrences of each value in a column.
+     * 
+     * This method counts the occurrences of each value in a column and returns the result as a new DataFrame.
+     * 
+     * @param columnIndex The index of the column to count the occurrences for.
+     * @return A DataFrame containing the value counts.
+     * @throws runtime_error If the column index is out of bounds.
+     */
+    DataFrame valueCounts(size_t columnIndex) {
+        if (columnIndex >= columnNames.size()) {
+            throw runtime_error("Column index out of bounds.");
+        }
+
+        // Get the column name using the index
+        string columnName = columnNames[columnIndex];
+        auto columnSeries = columns[columnName];
+
+        // Map to store value counts
+        map<string, int> valueCountMap;
+
+        // Iterate through the column and count the occurrences of each value
+        for (size_t i = 0; i < rowCount; ++i) {
+            string value = columnSeries->getStringAtIndex(i);
+            if (valueCountMap.find(value) == valueCountMap.end()) {
+                valueCountMap[value] = 1;
+            } else {
+                valueCountMap[value]++;
+            }
+        }
+
+        // Create a new DataFrame to store the value counts
+        DataFrame countDataFrame({"Value", "Count"});
+        for (const auto& [value, count] : valueCountMap) {
+            countDataFrame.addRow(value, count);
+        }
+
+        return countDataFrame;
+    }
+
+    // Overload by name
+    DataFrame valueCounts(const string& columnName) {
+        return valueCounts(getColumnIndex(columnName));
+    }
 };
 
 

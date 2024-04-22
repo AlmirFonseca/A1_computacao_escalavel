@@ -230,6 +230,26 @@ int main() {
         // Test the sum method
         cout << "\nSum of Score: " << any_cast<float>(plainDataFrame.sum("Score")) << endl;
 
+        // Test the valueCounts method
+        cout << "\nOriginal Dataframe: " << endl;
+        DataFrame dfForCounting({"ID", "Age"});
+        dfForCounting.addRow(1, 20);
+        dfForCounting.addRow(2, 22);
+        dfForCounting.addRow(3, 20);
+        dfForCounting.addRow(4, 22);
+        dfForCounting.addRow(5, 20);
+        dfForCounting.addRow(6, 22);
+        dfForCounting.addRow(7, 20);
+        dfForCounting.addRow(8, 21);
+        dfForCounting.addRow(9, 21);
+        dfForCounting.addRow(10, 21);
+        dfForCounting.addRow(11, 21);
+        dfForCounting.addRow(12, 21);
+        dfForCounting.print();
+
+        cout << "Value counts of Name: " << endl;
+        DataFrame valueCounts = dfForCounting.valueCounts("Age");
+        valueCounts.print();
 
 
 
