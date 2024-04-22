@@ -87,7 +87,7 @@ public:
      * @param sourceName The source from which to extract data.
      * @param df The DataFrame object to store the extracted data.
      */
-    virtual DataFrame* extractData(const string sourceName, const char delimiter) = 0;
+    virtual DataFrame* extractData(const string sourceName, const char delimiter, int startLine) = 0;
     
     /**
      * @brief Loads data into the source.
@@ -135,9 +135,6 @@ public:
 
         // Create a stringstream from line
         stringstream ss(line);
-
-        printf("Line: %s\n", line.c_str());
-
         int numColumns = df.getColumnCount();
 
         // Read each column data into the array
@@ -180,7 +177,7 @@ public:
      * 
      * @param sourceName The source from which to extract data.
      */
-    DataFrame* extractData(const string sourceName, const char delimiter) override {
+    DataFrame* extractData(const string sourceName, const char delimiter, int startLine) override {
         cout << "Extracting data from " << sourceName << " using csv extraction strategy." << endl;
         
         ifstream file(sourceName);
@@ -191,6 +188,14 @@ public:
             // Create a DataFrame object with the header
             DataFrame* df = createDataFrame(line, delimiter);
             
+            // Move to the start line
+            for (int i = 1; i < startLine; ++i){
+                if (!getline(file, line)) {
+                    printf("Start line is beyond EOF\n");
+                    return nullptr;
+                }
+            }
+
             // Read the rest of the lines
             while (getline(file, line)) {
                 // Count the number of empty columns in the line
@@ -283,7 +288,7 @@ public:
      * 
      * @param sourceName The source from which to extract data.
      */
-    DataFrame* extractData(const string sourceName, const char delimiter) override {
+    DataFrame* extractData(const string sourceName, const char delimiter, int startLine) override {
         cout << "Extracting data from " << sourceName << " using txt extraction strategy." << endl;
         
         ifstream file(sourceName);
@@ -388,13 +393,13 @@ public:
      * @param sourceName The name of the source from which to extract data.
      * @return A pointer to the DataFrame object containing the extracted data.
      */
-    DataFrame* extractData(const string& sourceName, const char delimiter = ',') {
+    DataFrame* extractData(const string& sourceName, const char delimiter = ',', int startLine = 1) {
         if (extractStrategy == "csv") {
             CsvExtractionStrategy csvExtractionStrategy;
-            return csvExtractionStrategy.extractData(sourceName, delimiter);
+            return csvExtractionStrategy.extractData(sourceName, delimiter, startLine);
         } else if (extractStrategy == "txt") {
             TxtExtractionStrategy txtExtractionStrategy;
-            return txtExtractionStrategy.extractData(sourceName, delimiter);
+            return txtExtractionStrategy.extractData(sourceName, delimiter, startLine);
         } else {
             cout << "Extraction strategy not supported." << endl;
             return nullptr;
