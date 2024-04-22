@@ -242,42 +242,45 @@ public:
     }
 };    
 
-// /**
-//  * @brief Class for grouping data in a DataFrame.
-//  * 
-//  * This class is a subclass of DataHandler.
-//  * It groups the data in a DataFrame based on a column name.
-//  * The data can be grouped by sum, mean, median, min or max.
-//  */
-// class GroupHandler : public DataHandler {
-// public:
-//     /**
-//      * @brief Construct a new GroupHandler object.
-//      * 
-//      * @param inputQueue Reference to the input queue.
-//      * @param outputQueue Reference to the output queue.
-//      * @param ColunmName The name of the column to group.
-//      */
-//     GroupHandler(Queue<DataFrame*> *inputQueue, Queue<DataFrame*> *outputQueue)
-//         : DataHandler(inputQueue, outputQueue) {};
+/**
+ * @brief Class for merging and summing data in two DataFrames.
+ * 
+ * This class is a subclass of DataHandler.
+ * It merges two DataFrames based on a column name and sums the values in the columns.
+ */
+class MergeAndSumHandler : public DataHandler {
+public:
+    /**
+     * @brief Construct a new MergeAndSumHandler object.
+     * 
+     * @param inputQueue Reference to the input queue.
+     * @param outputQueue Reference to the output queue.
+     * @param ColunmName The name of the column to merge.
+     * @param sumColumn The name of the column to sum.
+     * @param df1 The first DataFrame to merge.
+     * @param df2 The second DataFrame to merge.
+     */
+    MergeAndSumHandler(Queue<DataFrame*> *inputQueue, std::vector<Queue<DataFrame*>*> outputQueues)
+        : DataHandler(inputQueue, outputQueues) {};
 
-//     void groupByColumn(std::string columnName, GroupOperation op) {
-//         while(true) {
+    void mergeAndSum(DataFrame& df1, DataFrame& df2, std::string columnName, std::string sumColumn) {
+        while(true) {
 
-//             if (inputQueue->isEmpty()) {
-//                 break;
-//             }
+            if (inputQueue->isEmpty()) {
+                break;
+            }
 
-//             // Read the DataFrame from the input queue
-//             DataFrame* df = inputQueue->pop();
+            // Read the DataFrame from the input queue
+            DataFrame* df = inputQueue->pop();
 
-//             // Group the DataFrame
-//             df->groupByColumn(columnName, op);
+            // Merge and sum the DataFrames
+            DataFrame* dfMerged = new DataFrame();
+            *dfMerged = DataFrame::mergeAndSum(df1, df2, columnName, sumColumn);
 
-//             // Write the DataFrame to the output queue
-//             outputQueue->push(df);
-//         }
-//     }
-// };
+            // Write the DataFrame to the output queue
+            pushToOutputQueues(dfMerged);
+        }
+    }
+};
 
 #endif // DATAHANDLER_HPP
