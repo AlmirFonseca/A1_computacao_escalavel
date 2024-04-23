@@ -9,8 +9,10 @@ cd -  # Navigate back to root directory
 
 # Run Streamlit dashboard
 echo "Running Streamlit dashboard..."
-python -m streamlit run dashboard/main.py & disown  # Run in background and detach
+cd  dashboard || { echo "Error: Couldn't navigate to dashboard directory"; exit 1; }
+python -m streamlit run main.py & disown  # Run in background and detach
 
+cd -  # Navigate back to root directory
 
 # Run ETL script
 echo "Running ETL..."
