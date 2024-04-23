@@ -14,18 +14,35 @@ The project is based on a data processing pipeline modeling with 5 abstractions:
 
 To optimize the use of computing resources, Data Framework uses the C++ thread library to parallelize the execution of Handlers. This allows for more efficient and faster data processing. Specifically, queues serve as producer-consumer queues, addressing the classic problem of parallel computing.
 
+## Pre-Requirements:
+- C++17 compiler
+- Python 3.11
+
 ## Libraries used:
 
+- streamlit
+  - pip install streamlit
 - dirent.h (JUST INSTALL IF THE MAIN REQUIRES IT, as most c++ compilers include it)
   - Installation guide: https://web.archive.org/web/20171123102131/https://github.com/tronkko/dirent
+- sqlite3
 
 ## Execution on Windows:
 
-The first alternative is to run the shell script "run_it.sh".
+1. To run the Mock and the ETL:
 
-Another alternative:
+- The first alternative is to run the shell script "run_it.sh".
+
+  - Another alternative:
 
 - **From the root folder**, execute the command to run the MOCK:
   - cd mock ; python main.py
 - **From the root folder**, execute the command run the ETL:
   - cd src ; g++ main.cpp -o main ; ./main.exe
+ 
+2. To run the Dashboard:
+- **From the root folder**:
+  
+  cd dashboard; - python -m streamlit run main.py
+
+ 
+
