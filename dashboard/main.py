@@ -5,7 +5,7 @@ import os
 import time
 import re
 
-BASE_FOLDER = "./processed/"
+BASE_FOLDER = "../processed/"
 FILE_NAMES = ["CountView", "CountBuy", "BuyRanking", "ProdView", "ViewRanking"]
 UPDATE_INTERVAL = 3 # In seconds
 
@@ -43,13 +43,15 @@ def display_data(data_dict):
 
     # Número de produtos visualizados
     count_view_df = data_dict["CountView"]["data"]
-    st.subheader(f"Número de produtos visualizados por minuto: {count_view_df["Count"].sum()}")
+    num = count_view_df["Count"].sum()
+    st.subheader(f"Número de produtos visualizados por minuto: {num}")
 
     st.divider()
 
     # Número de produtos comprados
     count_buy_df = data_dict["CountBuy"]["data"]
-    st.subheader(f"Número de produtos comprados por minuto: {count_buy_df["Count"].sum()}")
+    num2 = count_buy_df["Count"].sum()
+    st.subheader(f"Número de produtos comprados por minuto: {num2}")
 
     st.divider()
 
