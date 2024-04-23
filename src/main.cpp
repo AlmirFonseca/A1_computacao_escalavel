@@ -202,27 +202,27 @@ int main(int argc, char* argv[]) {
     DataRepo* repoCountView = new DataRepo();
     repoCountView->setExtractDf(&result_dataframes[0]);
     repoCountView->setLoadStrategy("csv");
-    repoCountView->setLoadFileName("CountView.csv");
+    repoCountView->setLoadFileName("../processed/CountView.csv");
 
     DataRepo* repoCountBuy = new DataRepo();
     repoCountBuy->setExtractDf(&result_dataframes[1]);
     repoCountBuy->setLoadStrategy("csv");
-    repoCountBuy->setLoadFileName("CountBuy.csv");
+    repoCountBuy->setLoadFileName("../processed/CountBuy.csv");
 
     DataRepo* repoProdView = new DataRepo();
     repoProdView->setExtractDf(&result_dataframes[2]);
     repoProdView->setLoadStrategy("csv");
-    repoProdView->setLoadFileName("ProdView.csv");
+    repoProdView->setLoadFileName("../processed/ProdView.csv");
 
     DataRepo* repoBuyRanking = new DataRepo();
     repoBuyRanking->setExtractDf(&result_dataframes[3]);
     repoBuyRanking->setLoadStrategy("csv");
-    repoBuyRanking->setLoadFileName("BuyRanking.csv");
+    repoBuyRanking->setLoadFileName("../processed/BuyRanking.csv");
 
     DataRepo* repoViewRanking = new DataRepo();
     repoViewRanking->setExtractDf(&result_dataframes[4]);
     repoViewRanking->setLoadStrategy("csv");
-    repoViewRanking->setLoadFileName("ViewRanking.csv");
+    repoViewRanking->setLoadFileName("../processed/ViewRanking.csv");
 
 
     Trigger* triggerMin = new TimerTrigger(std::chrono::seconds(5));
