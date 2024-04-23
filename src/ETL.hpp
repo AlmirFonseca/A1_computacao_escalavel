@@ -82,10 +82,8 @@ private:
             processedFiles.push_back(filePath);
             
             repo.setExtractionStrategy(strategy);
-            // cout<<"Extracting data from file: " + filePath + "\n";
             DataFrame* df = repo.extractData(filePath, ';');
             if (df == nullptr) {
-                // std::cerr << "DataFrame is empty!" << filePath<<std::endl;
                 continue;
             }
             queueOut.push(df);
@@ -126,12 +124,8 @@ private:
     // Interface for notification (update) from triggers
     void updateOnTimeTrigger() override {
 
-        // procccessCsvPipeline();
-        // create a thread for the csv pipeline
         std::thread csvThread(&ETL::procccessCsvPipeline, this);
         
-        // procccessTxtPipeline();
-        // create a thread for the txt pipeline
         std::thread txtThread(&ETL::procccessTxtPipeline, this);
 
         // join the threads

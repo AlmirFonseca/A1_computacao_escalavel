@@ -40,7 +40,6 @@ public:
         active = true;
         std::thread([this]() {
             while (active) {
-                std::cout << "TimerTrigger activated!" << std::endl;
                 for (auto observer : observers) {
                     observer->updateOnTimeTrigger(); // Notify all observers
                 }

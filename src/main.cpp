@@ -20,8 +20,8 @@ int main(int argc, char* argv[]) {
     const std::string txtDirPath = "../mock/mock_files/log";
     const std::string requestDirPath = "../mock/mock_files/request";
 
-    const int DEFAULT_INPUT_QUEUE_SIZE = 100;
-    const int DEFAULT_OUTPUT_QUEUE_SIZE = 100;
+    const int DEFAULT_INPUT_QUEUE_SIZE = 10;
+    const int DEFAULT_OUTPUT_QUEUE_SIZE = 10;
     const int DEFAULT_MAX_THREADS = 10;
 
     // Check if arguments are provided
@@ -49,22 +49,22 @@ int main(int argc, char* argv[]) {
 
 
     // Número de produtos visualizados por minuto:
-    Queue<DataFrame*> queueUser(10);
+    Queue<DataFrame*> queueUser(inputQueueSize);
     vector<Queue<DataFrame*>*> outputQueuesUser = {&queueUser};
     FilterHandler filterUser(&queueDC, outputQueuesUser);
     pool.addTask([&filterUser]() {
         filterUser.filterByColumn("type", string("User"), CompareOperation::EQUAL);
     });
 
-    Queue<DataFrame*> queueView(10);
-    Queue<DataFrame*> queueView1(10);
+    Queue<DataFrame*> queueView(inputQueueSize);
+    Queue<DataFrame*> queueView1(inputQueueSize);
     vector<Queue<DataFrame*>*> outputQueuesView = {&queueView, &queueView1};
     FilterHandler filterView(&queueUser, outputQueuesView);
     pool.addTask([&filterView]() {
         filterView.filterByColumn("extra_1", string("ZOOM"), CompareOperation::EQUAL);
     });
 
-    Queue<DataFrame*> queueCountView(10);
+    Queue<DataFrame*> queueCountView(inputQueueSize);
     vector<Queue<DataFrame*>*> outputQueuesCountView = {&queueCountView};
     CountLinesHandler CountView(&queueView, outputQueuesCountView);
     pool.addTask([&CountView]() {
@@ -73,23 +73,23 @@ int main(int argc, char* argv[]) {
     
 
     // Número de produtos comprados por minuto:
-    Queue<DataFrame*> queueAuditoria(10);
+    Queue<DataFrame*> queueAuditoria(inputQueueSize);
     vector<Queue<DataFrame*>*> outputQueuesAuditoria = {&queueAuditoria};
     FilterHandler FilterAuditoria(&queueDC, outputQueuesAuditoria);
     pool.addTask([&FilterAuditoria]() {
         FilterAuditoria.filterByColumn("type", string("Audit"), CompareOperation::EQUAL);
     });
 
-    Queue<DataFrame*> queueBuy(10);
-    Queue<DataFrame*> queueBuy1(10);
-    Queue<DataFrame*> queueBuy2(10);
+    Queue<DataFrame*> queueBuy(inputQueueSize);
+    Queue<DataFrame*> queueBuy1(inputQueueSize);
+    Queue<DataFrame*> queueBuy2(inputQueueSize);
     vector<Queue<DataFrame*>*> outputQueuesBuy = {&queueBuy, &queueBuy1, &queueBuy2};
     FilterHandler filterBuy(&queueAuditoria, outputQueuesBuy);
     pool.addTask([&filterBuy]() {
         filterBuy.filterByColumn("extra_1", string("BUY"), CompareOperation::EQUAL);
     });
 
-    Queue<DataFrame*> queueCountBuy(10);
+    Queue<DataFrame*> queueCountBuy(inputQueueSize);
     vector<Queue<DataFrame*>*> outputQueuesCountBuy = {&queueCountBuy};
     CountLinesHandler CountBuy(&queueBuy, outputQueuesCountBuy);
     pool.addTask([&CountBuy]() {
@@ -98,8 +98,8 @@ int main(int argc, char* argv[]) {
 
 
     // Número de usuários únicos visualizando cada produto por minuto
-    Queue<DataFrame*> queueProdView(10);
-    Queue<DataFrame*> queueProdView1(10);
+    Queue<DataFrame*> queueProdView(inputQueueSize);
+    Queue<DataFrame*> queueProdView1(inputQueueSize);
     vector<Queue<DataFrame*>*> outputQueuesProdView = {&queueProdView, &queueProdView1};
     ValueCountHandler ProdView(&queueView1, outputQueuesProdView);
     pool.addTask([&ProdView]() {
@@ -109,14 +109,14 @@ int main(int argc, char* argv[]) {
 
 
     // Ranking de produtos mais comprados na última hora
-    Queue<DataFrame*> queueProdBuy(10);
+    Queue<DataFrame*> queueProdBuy(inputQueueSize);
     vector<Queue<DataFrame*>*> outputQueuesProdBuy = {&queueProdBuy};
     ValueCountHandler ProdBuy(&queueBuy1, outputQueuesProdBuy);
     pool.addTask([&ProdBuy]() {
         ProdBuy.countByColumn("extra_2");
     });
 
-    Queue<DataFrame*> queueBuyRanking(10);
+    Queue<DataFrame*> queueBuyRanking(inputQueueSize);
     vector<Queue<DataFrame*>*> outputQueuesBuyRanking = {&queueBuyRanking};
     SortHandler SortBuy(&queueProdBuy, outputQueuesBuyRanking);
     pool.addTask([&SortBuy]() {
@@ -125,7 +125,7 @@ int main(int argc, char* argv[]) {
 
 
     // Ranking de produtos mais visualizados na última hora
-    Queue<DataFrame*> queueViewRanking(10);
+    Queue<DataFrame*> queueViewRanking(inputQueueSize);
     vector<Queue<DataFrame*>*> outputQueuesViewRanking = {&queueViewRanking};
     SortHandler SortView(&queueProdView1, outputQueuesViewRanking);
     pool.addTask([&SortView]() {
@@ -133,7 +133,7 @@ int main(int argc, char* argv[]) {
     });
 
     // Quantidade média de visualizações de um produto antes de efetuar uma compra
-    Queue<DataFrame*> queueViewBuy(10);
+    Queue<DataFrame*> queueViewBuy(inputQueueSize);
     vector<Queue<DataFrame*>*> outputQueuesViewBeforeBuy = {&queueViewBuy};
     JoinHandler JoinViewBuy(&queueView1, outputQueuesViewBeforeBuy);
     // add task to thread pool
@@ -143,7 +143,7 @@ int main(int argc, char* argv[]) {
 
 
     // Número de produtos vendidos sem disponibilidade no estoque
-    Queue<DataFrame*> queueBuyStock(10);
+    Queue<DataFrame*> queueBuyStock(inputQueueSize);
     vector<Queue<DataFrame*>*> outputQueuesBuyStock = {&queueBuyStock};
     JoinHandler JoinBuyStock(&queueBuy2, outputQueuesBuyStock);
     // add task to thread pool
