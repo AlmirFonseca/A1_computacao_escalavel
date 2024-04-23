@@ -7,6 +7,11 @@ python main.py & disown  # Run in background and detach
 
 cd -  # Navigate back to root directory
 
+# Run Streamlit dashboard
+echo "Running Streamlit dashboard..."
+python -m streamlit run dashboard/main.py & disown  # Run in background and detach
+
+
 # Run ETL script
 echo "Running ETL..."
 cd src || { echo "Error: Couldn't navigate to src directory"; exit 1; }
