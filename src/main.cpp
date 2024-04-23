@@ -133,15 +133,25 @@ int main(int argc, char* argv[]) {
     });
 
     // Quantidade média de visualizações de um produto antes de efetuar uma compra
-    // Queue<DataFrame*> queueViewBuy(10);
-    // JoinHandler JoinViewBuy(&queueViewRanking, &queueBuyRanking, &queueViewBuy);
+    Queue<DataFrame*> queueViewBuy(10);
+    vector<Queue<DataFrame*>*> outputQueuesViewBeforeBuy = {&queueViewBuy};
+    JoinHandler JoinViewBuy(&queueView1, outputQueuesViewBeforeBuy);
+    // add task to thread pool
+    pool.addTask([&JoinViewBuy, &queueBuy1]() { // Capture queueBuy1 in the lambda capture list
+        JoinViewBuy.join(*queueBuy1.pop(), "extra_1");
+    });
+
 
     // Número de produtos vendidos sem disponibilidade no estoque
-    // Queue<DataFrame*> queueBuyStock(10);
-    // vector<Queue<DataFrame*>*> outputQueuesBuyStock = {&queueBuyStock};
-    // JoinHandler JoinBuyStock(&queueBuy2, outputQueuesBuyStock);
+    Queue<DataFrame*> queueBuyStock(10);
+    vector<Queue<DataFrame*>*> outputQueuesBuyStock = {&queueBuyStock};
+    JoinHandler JoinBuyStock(&queueBuy2, outputQueuesBuyStock);
+    // add task to thread pool
+    pool.addTask([&JoinBuyStock, &queueCV]() { // Capture queueCV in the lambda capture list
+        JoinBuyStock.join(*queueCV.pop(), "extra_2");
+    });
 
-    vector<Queue<DataFrame*>*> outputQueuesPipeline = {&queueCountView, &queueCountBuy, &queueProdView, &queueBuyRanking, &queueViewRanking};
+    vector<Queue<DataFrame*>*> outputQueuesPipeline = {&queueCountView, &queueCountBuy, &queueProdView, &queueBuyRanking, &queueViewRanking, &queueViewBuy, &queueBuyStock};
 
     DataFrame* result_dataframes[5] = {nullptr, nullptr, nullptr, nullptr, nullptr};
 
@@ -166,8 +176,6 @@ int main(int argc, char* argv[]) {
             }
 
         }
-        // string filename = "output" + to_string(i+1) + ".csv";
-        // repoRead->loadData(result_dataframes[i], filename);
     }
     
     for (int i = 0; i < 5; i++) {
