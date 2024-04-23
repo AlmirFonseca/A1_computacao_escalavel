@@ -42,7 +42,7 @@ int main(int argc, char* argv[]) {
     Queue<DataFrame*> queueCA(inputQueueSize);
 
 
-    ETL etl(csvDirPath, txtDirPath, requestDirPath, DEFAULT_INPUT_QUEUE_SIZE, DEFAULT_OUTPUT_QUEUE_SIZE, DEFAULT_MAX_THREADS, queueCV, queueDC, queueCA);
+    ETL etl(csvDirPath, txtDirPath, requestDirPath, queueCV, queueDC, queueCA);
 
     // Create a thread pool with 8 threads
     ThreadPool pool(8);

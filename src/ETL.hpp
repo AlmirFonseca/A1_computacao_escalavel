@@ -26,9 +26,6 @@ private:
     std::string csvDirPath;
     std::string txtDirPath;
     std::string requestDirPath;
-    const int INPUT_MAX_QUEUE_SIZE;
-    const int OUTPUT_MAX_QUEUE_SIZE;
-    const int MAX_THREADS;
 
     // create dataRepo object that should be live throughout the pipeline
     DataRepo repo;
@@ -82,8 +79,6 @@ private:
                 continue;
             }
 
-            std::cout << "Processing new file: " << filePath << std::endl;
-
             processedFiles.push_back(filePath);
             
             repo.setExtractionStrategy(strategy);
@@ -119,8 +114,8 @@ private:
     }
 
     public:
-        ETL(const std::string& csvDirectory, const std::string& txtDirectory, const std::string& requestDirectory, const int INPUT_MAX_QUEUE_SIZE, const int OUTPUT_MAX_QUEUE_SIZE, const int MAX_THREADS, Queue<DataFrame*>& queueCV, Queue<DataFrame*>& queueDC, Queue<DataFrame*>& queueCA)
-            : csvDirPath(csvDirectory), txtDirPath(txtDirectory), requestDirPath(requestDirectory), INPUT_MAX_QUEUE_SIZE(INPUT_MAX_QUEUE_SIZE), OUTPUT_MAX_QUEUE_SIZE(OUTPUT_MAX_QUEUE_SIZE), MAX_THREADS(MAX_THREADS), queueOutCV(queueCV), queueOutDC(queueDC), queueOutCA(queueCA) {
+        ETL(const std::string& csvDirectory, const std::string& txtDirectory, const std::string& requestDirectory, Queue<DataFrame*>& queueCV, Queue<DataFrame*>& queueDC, Queue<DataFrame*>& queueCA)
+            : csvDirPath(csvDirectory), txtDirPath(txtDirectory), requestDirPath(requestDirectory), queueOutCV(queueCV), queueOutDC(queueDC), queueOutCA(queueCA) {
             std::cout << "ETL created!" << std::endl;
         }
 
@@ -143,8 +138,6 @@ private:
         csvThread.join();
         txtThread.join();
 
-        // sleep
-        // std::cout << "Time-triggered Pipeline ended!" << std::endl;
     }
 
     // Interface for handling request from triggers
@@ -152,8 +145,6 @@ private:
      
         processRequestPipeline();   
         
-        // sleep
-        // std::cout << "Request-triggered Pipeline ended!" << std::endl;
     }
 };
 
