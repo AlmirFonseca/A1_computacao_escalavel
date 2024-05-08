@@ -10,6 +10,7 @@
 #include <stdexcept>
 #include <iomanip>
 #include <initializer_list>
+#include <chrono>
 
 #include "Series.hpp"
 
@@ -122,6 +123,7 @@ private:
     map<string, shared_ptr<ISeries>> columns; /**< A map storing the columns of the DataFrame. */
     vector<string> columnNames; /**< A vector storing the names of the columns. */
     size_t rowCount = 0; /**< The number of rows in the DataFrame. */
+    long long timestamp = chrono::duration_cast<chrono::milliseconds>(chrono::system_clock::now().time_since_epoch()).count(); /**< The timestamp of the DataFrame creation. */
 
 public:
     
@@ -146,6 +148,9 @@ public:
             columns[name] = make_shared<Series<int>>(name);
             columnNames.push_back(name);
         }
+
+        // Set the timestamp to the current system time
+        setCurrentTimestamp();
     }
 
     
@@ -162,6 +167,9 @@ public:
             columns[name] = make_shared<Series<int>>(name);
             columnNames.push_back(name);
         }
+
+        // Set the timestamp to the current system time
+        setCurrentTimestamp();
     }
 
     /**
@@ -321,6 +329,35 @@ public:
         --rowCount;
     }
 
+
+    /**
+     * Sets the timestamp of the current object to the current system time.
+     * The timestamp is represented as the number of milliseconds since the epoch.
+     */
+    void setCurrentTimestamp() {
+        timestamp = chrono::duration_cast<chrono::milliseconds>(chrono::system_clock::now().time_since_epoch()).count();
+    }
+
+    /**
+     * Sets the timestamp of the current object to the specified value.
+     * The timestamp is represented as the number of milliseconds since the epoch.
+     * 
+     * @param ts The timestamp value to be set.
+     */
+    void setTimestamp(long long ts) {
+        timestamp = ts;
+    }
+
+    /**
+     * Gets the timestamp of the DataFrame.
+     * The timestamp is represented as the number of milliseconds since the epoch.
+     * 
+     * @return The timestamp of the DataFrame.
+     */
+    long long getTimestamp() {
+        return timestamp;
+    }
+
     /**
      * @brief Print the types of each column in the DataFrame.
      * 
@@ -389,8 +426,7 @@ public:
      * @throws runtime_error If the column is not found in both DataFrames.
      * @throws runtime_error If the column types do not match.
      */
-    static DataFrame mergeOrdered(const DataFrame& df1, const DataFrame& df2, const string& columnName) {
-        DataFrame result;
+    static DataFrame mergeOrdered(const DataFrame& df1, const DataFrame& df2, const string& columnName) {;
         // Check if the column exists in both DataFrames
         if (df1.columns.find(columnName) == df1.columns.end() || df2.columns.find(columnName) == df2.columns.end()) {
             throw runtime_error("Column not found in both DataFrames.");
@@ -501,6 +537,10 @@ public:
         for (size_t i = 0; i < columnNames.size(); ++i) {
             cout << "----------------";
         }
+
+        // Print the timestamp
+        cout << endl << "Timestamp: " << timestamp << endl;
+
         cout << endl;
     }
 
@@ -554,6 +594,9 @@ public:
             columns[name] = other.columns.at(name)->clone();
             if (!copyData) columns[name]->clear();
         }
+
+        // Copy the timestamp
+        timestamp = other.timestamp;
     }
 
     /**
@@ -1004,6 +1047,8 @@ public:
             int sum = any_cast<int>(df1.sum(sumColumnName)) + any_cast<int>(df2.sum(sumColumnName));
             DataFrame* result = new DataFrame({sumColumnName});
             result->addRow(sum);
+            // Add the dataframe timestamp
+            result->setTimestamp(df1.getTimestamp());
             return *result;
         }
 
@@ -1038,6 +1083,8 @@ public:
         for (auto& [id, sum] : sumMap) {
             result.addRow(id, sum);
         }
+        // Add the dataframe timestamp
+        result.setTimestamp(df1.getTimestamp());
 
         return result;
     }
