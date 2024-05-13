@@ -20,15 +20,26 @@ int main() {
     // Print DataFrame information
     df->print();
 
-    // Push the DataFrame to the input queue
-    queueSelect.push(df);
-
-    auto filter = FilterHandler(&queueSelect, &queueFilter);
     
-    // Start the filter in a separate thread
-    filter.filterByColumn("Score", 100, CompareOperation::GREATER_THAN);
+    // thest JoinHandler
+    Queue<DataFrame*> queueProdBuy(10);
+    Queue<DataFrame*> queueJoin2(15);
+    vector<Queue<DataFrame*>*> outputQueuesJoin = {&queueProdBuy};
 
-    df->print();
+    // Create a JoinHandler object
+    JoinHandler joinHandler(&queueProdBuy, outputQueuesJoin);
+    joinHandler.join(*df, "extra_2");
+
+    // Print the DataFrame
+    queueProdBuy.pop()->print();
+
+    
+
+
+    
+
+
+
 
     return 0;
 }
