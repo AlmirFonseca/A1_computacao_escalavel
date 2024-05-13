@@ -122,7 +122,7 @@ private:
         }
 
     // Interface for notification (update) from triggers
-    void updateOnTimeTrigger() override {
+    void updateOnRequestTrigger() override {
 
         std::thread csvThread(&ETL::procccessCsvPipeline, this);
         
@@ -135,10 +135,9 @@ private:
     }
 
     // Interface for handling request from triggers
-    void updateOnRequestTrigger() override {
-     
-        processRequestPipeline();   
-        
+    void updateOnTimeTrigger() override {
+        std::thread requestThread(&ETL::processRequestPipeline, this);
+        requestThread.join();
     }
 };
 

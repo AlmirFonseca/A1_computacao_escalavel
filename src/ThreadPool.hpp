@@ -28,6 +28,7 @@ public:
      */
     ThreadPool(int numThreads) : numThreads(numThreads) {
         // Create a number of threads and start them
+        printf("Number of threads: %d\n", numThreads);
         for (int i = 0; i < numThreads; i++) {
             threads.push_back(thread([this] { this->run(); }));
         }
@@ -65,6 +66,7 @@ public:
             // Add the task to the queue
             unique_lock<mutex> lock(queueMutex);
             tasks.push_back([=] { task(args...); });
+            numTasks++;
         }
 
         // Notify a thread that there is a task to be executed
@@ -75,9 +77,17 @@ private:
     /**
      * @brief The function that the threads will execute
      */
-    void run() {
+    void run() { 
+        // Wait for a task to be added to the queue
+        while (numTasks == 0) 
+        {
+            this_thread::sleep_for(chrono::milliseconds(100));
+        }
+
+        // Execute the tasks in the queue
         while (true) {
             function<void()> task;
+
             {
                 unique_lock<mutex> lock(queueMutex);
                 
@@ -89,34 +99,36 @@ private:
                     return;
                 }
 
-                // Get the task from the top of the queue
-                task = pop_and_push_task();
+                // Get the task according to the taskIndex
+                task = get_next_task();
+
+                // Increment the taskIndex
+                taskIndex++;
             }
 
             // Execute the task
             task();
+
+            // Notify the condition variable that the task is finished
+            condition.notify_one();
         }
     }
 
     /**
-     * @brief Remove the task from the top of the queue and add it to the bottom of the queue
+     * @brief Get the next task from the queue using the taskIndex
      * 
-     * @return The task that was removed
+     * @return The task to be executed
      */
-    function<void()> pop_and_push_task() {
-        // Get the task from the top of the queue
-        auto task = tasks.front();
-
-        // Remove the task from the top of the queue
-        tasks.pop_front();
-
-        // Add the task to the bottom of the queue
-        tasks.push_back([=] { task(); });
-
+    function<void()> get_next_task() {
+        // Get the task from the taskIndex
+        function<void()> task = tasks[taskIndex %= numTasks];
+        
         return task;
     }
 
     int numThreads; // Number of threads
+    int numTasks = 0; // Number of tasks
+    int taskIndex = 0; // Index of the task
     vector<thread> threads; // Vector of threads
     deque<function<void()>> tasks; // Queue of tasks
     mutex queueMutex; // Mutex for the queue

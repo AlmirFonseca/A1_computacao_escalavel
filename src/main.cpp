@@ -47,11 +47,22 @@ int main(int argc, char* argv[]) {
     // Create a thread pool with 8 threads
     ThreadPool pool(8);
 
+    //========= USING ONLY DATA FROM "CADE ANALYTICS"
+
+    // Duplicate the dataframes in queueCA to send to the two different pipelines
+    Queue<DataFrame*> queueCA1(inputQueueSize);
+    Queue<DataFrame*> queueCA2(inputQueueSize);
+    vector<Queue<DataFrame*>*> outputQueuesCA = {&queueCA1, &queueCA2};
+    CopyHandler copyCA(&queueCA, outputQueuesCA);
+    pool.addTask([&copyCA]() {
+        copyCA.copy();
+    });
+
 
     // Número de produtos visualizados por minuto:
     Queue<DataFrame*> queueUser(inputQueueSize);
     vector<Queue<DataFrame*>*> outputQueuesUser = {&queueUser};
-    FilterHandler filterUser(&queueDC, outputQueuesUser);
+    FilterHandler filterUser(&queueCA1, outputQueuesUser);
     pool.addTask([&filterUser]() {
         filterUser.filterByColumn("type", string("User"), CompareOperation::EQUAL);
     });
@@ -75,15 +86,16 @@ int main(int argc, char* argv[]) {
     // Número de produtos comprados por minuto:
     Queue<DataFrame*> queueAuditoria(inputQueueSize);
     vector<Queue<DataFrame*>*> outputQueuesAuditoria = {&queueAuditoria};
-    FilterHandler FilterAuditoria(&queueDC, outputQueuesAuditoria);
+    FilterHandler FilterAuditoria(&queueCA2, outputQueuesAuditoria);
     pool.addTask([&FilterAuditoria]() {
         FilterAuditoria.filterByColumn("type", string("Audit"), CompareOperation::EQUAL);
     });
 
+
     Queue<DataFrame*> queueBuy(inputQueueSize);
     Queue<DataFrame*> queueBuy1(inputQueueSize);
     Queue<DataFrame*> queueBuy2(inputQueueSize);
-    vector<Queue<DataFrame*>*> outputQueuesBuy = {&queueBuy, &queueBuy1, &queueBuy2};
+    vector<Queue<DataFrame*>*> outputQueuesBuy = {&queueBuy, &queueBuy1};
     FilterHandler filterBuy(&queueAuditoria, outputQueuesBuy);
     pool.addTask([&filterBuy]() {
         filterBuy.filterByColumn("extra_1", string("BUY"), CompareOperation::EQUAL);
@@ -133,76 +145,49 @@ int main(int argc, char* argv[]) {
     });
 
     // Quantidade média de visualizações de um produto antes de efetuar uma compra
-    Queue<DataFrame*> queueViewBuy(inputQueueSize);
-    vector<Queue<DataFrame*>*> outputQueuesViewBeforeBuy = {&queueViewBuy};
-    JoinHandler JoinViewBuy(&queueView1, outputQueuesViewBeforeBuy);
-    // add task to thread pool
-    pool.addTask([&JoinViewBuy, &queueBuy1]() { // Capture queueBuy1 in the lambda capture list
-        JoinViewBuy.join(*queueBuy1.pop(), "extra_1");
-    });
+    // Queue<DataFrame*> queueViewBuy(inputQueueSize);
+    // vector<Queue<DataFrame*>*> outputQueuesViewBeforeBuy = {&queueViewBuy};
+    // JoinHandler JoinViewBuy(&queueView1, outputQueuesViewBeforeBuy);
+    // // add task to thread pool
+    // pool.addTask([&JoinViewBuy, &queueBuy1]() { // Capture queueBuy1 in the lambda capture list
+    //     JoinViewBuy.join(*queueBuy1.pop(), "extra_1");
+    // });
 
 
     // Número de produtos vendidos sem disponibilidade no estoque
-    Queue<DataFrame*> queueBuyStock(inputQueueSize);
-    vector<Queue<DataFrame*>*> outputQueuesBuyStock = {&queueBuyStock};
-    JoinHandler JoinBuyStock(&queueBuy2, outputQueuesBuyStock);
-    // add task to thread pool
-    pool.addTask([&JoinBuyStock, &queueCV]() { // Capture queueCV in the lambda capture list
-        JoinBuyStock.join(*queueCV.pop(), "extra_2");
-    });
+    // Queue<DataFrame*> queueBuyStock(inputQueueSize);
+    // vector<Queue<DataFrame*>*> outputQueuesBuyStock = {&queueBuyStock};
+    // JoinHandler JoinBuyStock(&queueBuy2, outputQueuesBuyStock);
+    // // add task to thread pool
+    // pool.addTask([&JoinBuyStock, &queueCV]() { // Capture queueCV in the lambda capture list
+    //     JoinBuyStock.join(*queueCV.pop(), "extra_2");
+    // });
 
-    vector<Queue<DataFrame*>*> outputQueuesPipeline = {&queueCountView, &queueCountBuy, &queueProdView, &queueBuyRanking, &queueViewRanking, &queueViewBuy, &queueBuyStock};
+    vector<Queue<DataFrame*>*> outputQueuesPipeline = {&queueCountView, &queueCountBuy, &queueProdView, &queueBuyRanking, &queueViewRanking};
 
     DataFrame* result_dataframes[5] = {nullptr, nullptr, nullptr, nullptr, nullptr};
 
-    for (int i = 0; i < 5; i++) {
-        if (outputQueuesPipeline[i]->isEmpty())
-        {
-            continue;
-        }
-        result_dataframes[i] = outputQueuesPipeline[i]->pop();
-        while (!outputQueuesPipeline[i]->isEmpty())
-        {
-            DataFrame* df = outputQueuesPipeline[i]->pop();
-
-            // If the dataframe has only one column, sum the values
-            if (df->getColumnCount() == 1){
-                *result_dataframes[i] = DataFrame::mergeAndSum(*result_dataframes[i], *df, "", "Count");
-            }
-
-            // If the dataframe has two columns, merge the dataframes and sum the values
-            else{
-                *result_dataframes[i] = DataFrame::mergeAndSum(*result_dataframes[i], *df, "Value", "Count");
-            }
-
-        }
-    }
-    
+    // Tasks to merge the dataframes in the output queues into the result dataframes
     for (int i = 0; i < 5; i++) {
         DataFrame** result_dataframe = &result_dataframes[i];
         Queue<DataFrame*>* outputQueue = outputQueuesPipeline[i];
-        pool.addTask([outputQueue, result_dataframe]() {
-            if (outputQueue->isEmpty())
-            {
-                return;
-            }
-            if (*result_dataframe == nullptr)
-            {
-                *result_dataframe = outputQueue->pop();
-            }
-            if (!outputQueue->isEmpty())
-            {
+        pool.addTask([outputQueue, result_dataframe, i]() {
+            // Wait for the output queue to have data
+            if (outputQueue->isEmpty()) return;
+
+            // If the result dataframe is empty, set it to the first dataframe in the queue
+            if (*result_dataframe == nullptr) *result_dataframe = outputQueue->pop();
+
+            // Merge the dataframes in the output queue with the result dataframe
+            while (!outputQueue->isEmpty()) {
                 DataFrame* df = outputQueue->pop();
-                // If the dataframe has only one column, sum the values
-                if (df->getColumnCount() == 1){
-                    **result_dataframe = DataFrame::mergeAndSum(**result_dataframe, *df, "", "Count");
-                }
-
-                // If the dataframe has two columns, merge the dataframes and sum the values
-                else{
-                    **result_dataframe = DataFrame::mergeAndSum(**result_dataframe, *df, "Value", "Count");
-                }
-
+                
+                // If the dataframe has only one column, sum the values else merge the dataframes
+                if (df->getColumnCount() == 1) **result_dataframe = DataFrame::mergeAndSum(**result_dataframe, *df, "", "Count");
+                else **result_dataframe = DataFrame::mergeAndSum(**result_dataframe, *df, "Value", "Count");
+                
+                // Delete the old DataFrame
+                delete df;
             }
         });
     }
@@ -243,22 +228,16 @@ int main(int argc, char* argv[]) {
     triggerHour->addObserver(std::make_shared<DataRepo>(*repoViewRanking));
 
     TimerTrigger timer(std::chrono::seconds(1));
-    RequestTrigger request(std::chrono::seconds(1), std::chrono::seconds(3));
-
     timer.addObserver(std::make_shared<ETL>(etl));
-    request.addObserver(std::make_shared<ETL>(etl));
-
     timer.activate();
-    request.activate();
     triggerHour->activate();
     triggerMin->activate();
-    
+
     while (true) {
         std::this_thread::sleep_for(std::chrono::seconds(1));
     }
 
     timer.deactivate();
-    request.deactivate();
     triggerHour->deactivate();
     triggerMin->deactivate();
 
