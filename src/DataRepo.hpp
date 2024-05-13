@@ -450,8 +450,11 @@ public:
             cout << "No data to load." << endl;
             return;
         }
-        (*extractDf)->print();
         loadData(**extractDf, loadFileName);
+
+        // Delete the DataFrame object after loading the data
+        delete *extractDf;
+        
         *extractDf = nullptr;
     }
 

@@ -50,6 +50,28 @@ public:
 };
 
 /**
+ * @brief Class for copying data in a DataFrame.
+ * 
+ * This class is a subclass of DataHandler.
+ * It copies the data in a DataFrame to multiple output queues.
+ */
+class CopyHandler : public DataHandler {
+public:
+    CopyHandler(Queue<DataFrame*> *inputQueue, std::vector<Queue<DataFrame*>*> outputQueues)
+        : DataHandler(inputQueue, outputQueues) {};
+
+    void copy() {
+        while (!inputQueue->isEmpty()) {
+            DataFrame* df = inputQueue->pop();
+
+            // Write the DataFrame to the output queues
+            pushToOutputQueues(df);
+        }
+    }
+};
+
+
+/**
  * @brief Class for counting the number of lines in a DataFrame.
  * 
  * This class is a subclass of DataHandler.
@@ -61,16 +83,16 @@ public:
         : DataHandler(inputQueue, outputQueues) {};
 
     void countLines() {
-        while(true) {
-            if (inputQueue->isEmpty()) {
-                break;
-            }
+        while (!inputQueue->isEmpty()) {
 
             // Read the DataFrame from the input queue
             DataFrame* df = inputQueue->pop();
 
             // Count the lines in the DataFrame
             int lines = df->getRowCount();
+
+            // Delete the DataFrame
+            delete df;
 
             // Create a new DataFrame with the count
             DataFrame* countDf = new DataFrame({"Count"});
@@ -105,12 +127,7 @@ public:
         : DataHandler(inputQueue, outputQueues) {};
 
     void filterByColumn(std::string columnName, const std::any& filterValue, CompareOperation op) {
-        while(true) {
-
-            if (inputQueue->isEmpty()) {
-                break;
-            }
-
+        while (!inputQueue->isEmpty()) {
             // Read the DataFrame from the input queue
             DataFrame* df = inputQueue->pop();
 
@@ -142,18 +159,16 @@ public:
         : DataHandler(inputQueue, outputQueues) {};
 
     void countByColumn(std::string columnName) {
-        while(true) {
-
-            if (inputQueue->isEmpty()) {
-                break;
-            }
-
+        while (!inputQueue->isEmpty()) {
             // Read the DataFrame from the input queue
             DataFrame* df = inputQueue->pop();
 
             // Count the values in the DataFrame
             DataFrame* countDf = new DataFrame();
             *countDf = df->valueCounts(columnName);
+
+            // Delete the DataFrame
+            delete df;
 
             // Write the DataFrame to the output queue
             pushToOutputQueues(countDf);
@@ -183,18 +198,16 @@ public:
         : DataHandler(inputQueue, outputQueues) {};
 
     void join(DataFrame& dfRight, std::string keyColumnName, bool dropKeyColumn=false) {
-        while(true) {
-
-            if (inputQueue->isEmpty()) {
-                break;
-            }
-
+        while (!inputQueue->isEmpty()) {
             // Read the DataFrame from the input queue
             DataFrame* dfLeft = inputQueue->pop();
 
             // Join the DataFrames
             DataFrame* dfJoined = new DataFrame();
             *dfJoined = dfLeft->leftJoin(dfRight, keyColumnName, dropKeyColumn);
+
+            // Delete the left DataFrame
+            delete dfLeft;
 
 
             // Write the DataFrame to the output queue
@@ -224,11 +237,7 @@ public:
         : DataHandler(inputQueue, outputQueues) {};
 
     void sortByColumn(std::string columnName, bool ascending=true) {
-        while(true) {
-
-            if (inputQueue->isEmpty()) {
-                break;
-            }
+        while (!inputQueue->isEmpty()) {
 
             // Read the DataFrame from the input queue
             DataFrame* df = inputQueue->pop();
@@ -264,18 +273,16 @@ public:
         : DataHandler(inputQueue, outputQueues) {};
 
     void mergeAndSum(DataFrame& df1, DataFrame& df2, std::string columnName, std::string sumColumn) {
-        while(true) {
-
-            if (inputQueue->isEmpty()) {
-                break;
-            }
-
+        while (!inputQueue->isEmpty()) {
             // Read the DataFrame from the input queue
             DataFrame* df = inputQueue->pop();
 
             // Merge and sum the DataFrames
             DataFrame* dfMerged = new DataFrame();
             *dfMerged = DataFrame::mergeAndSum(df1, df2, columnName, sumColumn);
+
+            // Delete the DataFrame
+            delete df;
 
             // Write the DataFrame to the output queue
             pushToOutputQueues(dfMerged);
