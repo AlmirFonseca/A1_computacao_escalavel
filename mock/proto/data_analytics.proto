@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package models.py
+
+message Empty {}
+
+message logdataanalytics {
+  string timestamp = 1;
+  string type = 2;
+  string content = 3;
+  string extra_1 = 4;
+  string extra_2 = 5;
+}
+
+service SimulationService {
+  rpc ReportCycle(logdataanalytics) returns (Empty);
+}

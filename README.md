@@ -33,7 +33,10 @@ To optimize the use of computing resources, Data Framework uses the C++ thread l
 
 ## Execution on Windows:
 
-1. Run the Mock and the ETL:
+1. First, run the proto:
+   1. From the root folder:
+      1. cd mock/proto ;  python -m grpc_tools.protoc --proto_path=. ./data_analytics.proto --python_out=. --grpc_python_out=.
+2. Run the Mock and the ETL:
 
 - The first alternative is to run the shell script:
 
