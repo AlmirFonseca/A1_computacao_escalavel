@@ -1,0 +1,7 @@
+message logdataanalytics {
+  string timestamp = 1;
+  string type = 2;
+  string content = 3;
+  string extra_1 = 4
+  string extra_2 = 5
+}
