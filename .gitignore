@@ -163,3 +163,10 @@ cython_debug/
 #.idea/
 mock/mock_files/*
 mock_files/*
+helloworld/*
+mock/data_analytics_pb2_grpc.py
+mock/data_analytics_pb2.py
+shared_proto/data_analytics_pb2_grpc.py
+shared_proto/data_analytics_pb2.py
+src/data_analytics_pb2_grpc.py
+src/data_analytics_pb2.py

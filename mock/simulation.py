@@ -7,6 +7,8 @@ from collections import deque
 from graph_user_flow import *
 import time
 import msvcrt
+import rpc
+import time
 
 @dataclass
 class SimulationParams:
@@ -22,8 +24,9 @@ class Simulation:
     params: SimulationParams
     cycle: int
     silent: bool = True
+    stub: rpc.pb2_grpc.SimulationServiceStreamStub
 
-    def __init__(self, params: SimulationParams, silent: bool = True):
+    def __init__(self, params: SimulationParams, stub: rpc.pb2_grpc.SimulationServiceStreamStub, silent: bool = True):
         self.cycle = 0
         self.params = params
         self.silent = silent
@@ -40,6 +43,7 @@ class Simulation:
         self.depuration = []
         self.log_flow = []
         self.user_flow_report = []
+        self.stub = stub
 
         self.G = G
 
@@ -395,12 +399,7 @@ class Simulation:
                 # self.release_lock(self.csv_complete_path[0])
 
     def write_log_dataAnalytics(self, request_cycle):
-        if self.user_flow_report:
-            with open(request_cycle, "a") as f:
-                # acquire lock and write to the file, then release the lock
-                # if self.acquire_lock(request_cycle):
-                f.writelines(self.user_flow_report)
-                # self.release_lock(request_cycle)
+        rpc.report_cycle(self.stub, self.user_flow_report)
 
     def write_log(self, log_cycle):
         if self.log_flow:
