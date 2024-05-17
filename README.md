@@ -61,8 +61,10 @@ To optimize the use of computing resources, Data Framework uses the C++ thread l
 
    2. (SERVER IN C++) Open a new terminal on root to execute the server (in Linux/WSL) as follows:
       - cd src ; make ; ./server
-    (SERVER IN PYTHON AVAILABE AFTER 
-      - python -m grpc_tools.protoc --proto_path=. ./data_analytics.proto --python_out=../src --grpc_python_out=../src)
+
+      - [OPTIONAL] SERVER IN PYTHON AVAILABE AFTER 
+         - python -m grpc_tools.protoc --proto_path=. ./data_analytics.proto --python_out=../src --grpc_python_out=../src
+      
 
     3. Open a new terminal on root to execute the client as follows:
       - cd mock ; python client.py
