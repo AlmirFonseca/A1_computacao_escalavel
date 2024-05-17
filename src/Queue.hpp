@@ -41,12 +41,15 @@ public:
      */
     T pop() {
         fullQueue.wait();
-        mutex.lock();
+        std::lock_guard<std::mutex> guard(mutex);
+        if (queue.empty()) {
+            throw std::runtime_error("Pop from empty queue");
+        }
         T element = queue.front();
         queue.pop();
-        mutex.unlock();
         emptyQueue.notify();
         return element;
+
     }
 
     /**

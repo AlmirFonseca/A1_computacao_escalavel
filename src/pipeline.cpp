@@ -14,68 +14,39 @@
 
 using namespace std;
 
-int main(int argc, char* argv[]) {
-
-    const std::string csvDirPath = "../mock/mock_files/csv";
-    const std::string txtDirPath = "../mock/mock_files/log";
-    const std::string requestDirPath = "../mock/mock_files/request";
-
-    const int DEFAULT_INPUT_QUEUE_SIZE = 10;
-    const int DEFAULT_OUTPUT_QUEUE_SIZE = 10;
-    const int DEFAULT_MAX_THREADS = 10;
-
-    // Check if arguments are provided
-    int inputQueueSize = DEFAULT_INPUT_QUEUE_SIZE;
-    int outputQueueSize = DEFAULT_OUTPUT_QUEUE_SIZE;
-    int maxThreads = DEFAULT_MAX_THREADS;
-
-    if (argc >= 4) {
-        // Assuming arguments are provided in the order: inputQueueSize, outputQueueSize, maxThreads
-        inputQueueSize = std::stoi(argv[1]);
-        outputQueueSize = std::stoi(argv[2]);
-        maxThreads = std::stoi(argv[3]);
-    }
-
-    // create a queue of dataframes
-    Queue<DataFrame*> queueCV(inputQueueSize);
-    Queue<DataFrame*> queueDC(inputQueueSize);
-    Queue<DataFrame*> queueCA(inputQueueSize);
-
-
-    ETL etl(csvDirPath, txtDirPath, requestDirPath, queueCV, queueDC, queueCA);
-
+int process(Queue<DataFrame*>* queueCA, int maxQueueSize, int numThreads){
     // Create a thread pool with 8 threads
-    ThreadPool pool(6);
+    ThreadPool pool(numThreads);
 
     //========= USING ONLY DATA FROM "CADE ANALYTICS"
 
     // Duplicate the dataframes in queueCA to send to the two different pipelines
-    Queue<DataFrame*> queueCA1(inputQueueSize);
-    Queue<DataFrame*> queueCA2(inputQueueSize);
+    Queue<DataFrame*> queueCA1(maxQueueSize);
+    Queue<DataFrame*> queueCA2(maxQueueSize);
     vector<Queue<DataFrame*>*> outputQueuesCA = {&queueCA1, &queueCA2};
-    CopyHandler copyCA(&queueCA, outputQueuesCA);
+    CopyHandler copyCA(queueCA, outputQueuesCA);
     pool.addTask([&copyCA]() {
         copyCA.copy();
     });
 
 
     // Número de produtos visualizados por minuto:
-    Queue<DataFrame*> queueUser(inputQueueSize);
+    Queue<DataFrame*> queueUser(maxQueueSize);
     vector<Queue<DataFrame*>*> outputQueuesUser = {&queueUser};
     FilterHandler filterUser(&queueCA1, outputQueuesUser);
     pool.addTask([&filterUser]() {
         filterUser.filterByColumn("type", string("User"), CompareOperation::EQUAL);
     });
 
-    Queue<DataFrame*> queueView(inputQueueSize);
-    Queue<DataFrame*> queueView1(inputQueueSize);
+    Queue<DataFrame*> queueView(maxQueueSize);
+    Queue<DataFrame*> queueView1(maxQueueSize);
     vector<Queue<DataFrame*>*> outputQueuesView = {&queueView, &queueView1};
     FilterHandler filterView(&queueUser, outputQueuesView);
     pool.addTask([&filterView]() {
         filterView.filterByColumn("extra_1", string("ZOOM"), CompareOperation::EQUAL);
     });
 
-    Queue<DataFrame*> queueCountView(inputQueueSize);
+    Queue<DataFrame*> queueCountView(maxQueueSize);
     vector<Queue<DataFrame*>*> outputQueuesCountView = {&queueCountView};
     CountLinesHandler CountView(&queueView, outputQueuesCountView);
     pool.addTask([&CountView]() {
@@ -84,7 +55,7 @@ int main(int argc, char* argv[]) {
     
 
     // Número de produtos comprados por minuto:
-    Queue<DataFrame*> queueAuditoria(inputQueueSize);
+    Queue<DataFrame*> queueAuditoria(maxQueueSize);
     vector<Queue<DataFrame*>*> outputQueuesAuditoria = {&queueAuditoria};
     FilterHandler FilterAuditoria(&queueCA2, outputQueuesAuditoria);
     pool.addTask([&FilterAuditoria]() {
@@ -92,16 +63,16 @@ int main(int argc, char* argv[]) {
     });
 
 
-    Queue<DataFrame*> queueBuy(inputQueueSize);
-    Queue<DataFrame*> queueBuy1(inputQueueSize);
-    Queue<DataFrame*> queueBuy2(inputQueueSize);
+    Queue<DataFrame*> queueBuy(maxQueueSize);
+    Queue<DataFrame*> queueBuy1(maxQueueSize);
+    Queue<DataFrame*> queueBuy2(maxQueueSize);
     vector<Queue<DataFrame*>*> outputQueuesBuy = {&queueBuy, &queueBuy1};
     FilterHandler filterBuy(&queueAuditoria, outputQueuesBuy);
     pool.addTask([&filterBuy]() {
         filterBuy.filterByColumn("extra_1", string("BUY"), CompareOperation::EQUAL);
     });
 
-    Queue<DataFrame*> queueCountBuy(inputQueueSize);
+    Queue<DataFrame*> queueCountBuy(maxQueueSize);
     vector<Queue<DataFrame*>*> outputQueuesCountBuy = {&queueCountBuy};
     CountLinesHandler CountBuy(&queueBuy, outputQueuesCountBuy);
     pool.addTask([&CountBuy]() {
@@ -110,8 +81,8 @@ int main(int argc, char* argv[]) {
 
 
     // Número de usuários únicos visualizando cada produto por minuto
-    Queue<DataFrame*> queueProdView(inputQueueSize);
-    Queue<DataFrame*> queueProdView1(inputQueueSize);
+    Queue<DataFrame*> queueProdView(maxQueueSize);
+    Queue<DataFrame*> queueProdView1(maxQueueSize);
     vector<Queue<DataFrame*>*> outputQueuesProdView = {&queueProdView, &queueProdView1};
     ValueCountHandler ProdView(&queueView1, outputQueuesProdView);
     pool.addTask([&ProdView]() {
@@ -121,14 +92,14 @@ int main(int argc, char* argv[]) {
 
 
     // Ranking de produtos mais comprados na última hora
-    Queue<DataFrame*> queueProdBuy(inputQueueSize);
+    Queue<DataFrame*> queueProdBuy(maxQueueSize);
     vector<Queue<DataFrame*>*> outputQueuesProdBuy = {&queueProdBuy};
     ValueCountHandler ProdBuy(&queueBuy1, outputQueuesProdBuy);
     pool.addTask([&ProdBuy]() {
         ProdBuy.countByColumn("extra_2");
     });
 
-    Queue<DataFrame*> queueBuyRanking(inputQueueSize);
+    Queue<DataFrame*> queueBuyRanking(maxQueueSize);
     vector<Queue<DataFrame*>*> outputQueuesBuyRanking = {&queueBuyRanking};
     SortHandler SortBuy(&queueProdBuy, outputQueuesBuyRanking);
     pool.addTask([&SortBuy]() {
@@ -137,7 +108,7 @@ int main(int argc, char* argv[]) {
 
 
     // Ranking de produtos mais visualizados na última hora
-    Queue<DataFrame*> queueViewRanking(inputQueueSize);
+    Queue<DataFrame*> queueViewRanking(maxQueueSize);
     vector<Queue<DataFrame*>*> outputQueuesViewRanking = {&queueViewRanking};
     SortHandler SortView(&queueProdView1, outputQueuesViewRanking);
     pool.addTask([&SortView]() {
@@ -145,7 +116,7 @@ int main(int argc, char* argv[]) {
     });
 
     // Quantidade média de visualizações de um produto antes de efetuar uma compra
-    // Queue<DataFrame*> queueViewBuy(inputQueueSize);
+    // Queue<DataFrame*> queueViewBuy(maxQueueSize);
     // vector<Queue<DataFrame*>*> outputQueuesViewBeforeBuy = {&queueViewBuy};
     // JoinHandler JoinViewBuy(&queueView1, outputQueuesViewBeforeBuy);
     // // add task to thread pool
@@ -155,7 +126,7 @@ int main(int argc, char* argv[]) {
 
 
     // Número de produtos vendidos sem disponibilidade no estoque
-    // Queue<DataFrame*> queueBuyStock(inputQueueSize);
+    // Queue<DataFrame*> queueBuyStock(maxQueueSize);
     // vector<Queue<DataFrame*>*> outputQueuesBuyStock = {&queueBuyStock};
     // JoinHandler JoinBuyStock(&queueBuy2, outputQueuesBuyStock);
     // // add task to thread pool
@@ -194,6 +165,8 @@ int main(int argc, char* argv[]) {
 
             // Merge the dataframes in the output queue with the result dataframe
             while (!outputQueue->isEmpty()) {
+                if (*result_dataframe == nullptr) return;
+
                 DataFrame* df = outputQueue->pop();
                 
                 // If the dataframe has only one column, sum the values else merge the dataframes
@@ -222,6 +195,8 @@ int main(int argc, char* argv[]) {
     Trigger* triggerMin = new TimerTrigger(std::chrono::seconds(MIN));
     Trigger* triggerHour = new TimerTrigger(std::chrono::seconds(HOUR));
 
+
+    // ------------------THE ERROR IS HERE------------------
     // Create a DataRepo for each pipeline
     for (int i = 0; i < 5; i++) {
         // Create a DataRepo for each result dataframe
@@ -246,20 +221,15 @@ int main(int argc, char* argv[]) {
         }
     }
 
-    // Trigger to activate the ETL
-    TimerTrigger timer(std::chrono::seconds(1));
-    timer.addObserver(std::make_shared<ETL>(etl));
     
     // Activate the triggers
-    timer.activate();
     triggerHour->activate();
     triggerMin->activate();
 
     while (true) {
-        std::this_thread::sleep_for(std::chrono::seconds(1));
+        std::this_thread::sleep_for(std::chrono::hours(1));
     }
 
-    timer.deactivate();
     triggerHour->deactivate();
     triggerMin->deactivate();
 

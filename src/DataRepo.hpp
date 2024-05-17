@@ -87,7 +87,7 @@ public:
      * @param sourceName The source from which to extract data.
      * @param df The DataFrame object to store the extracted data.
      */
-    virtual DataFrame* extractData(const string sourceName, const char delimiter, int startLine) = 0;
+    virtual DataFrame* extractData(const string sourceName, const char delimiter, int startLine, vector<string> listData) = 0;
     
     /**
      * @brief Loads data into the source.
@@ -97,7 +97,7 @@ public:
      * @param destName The destination to which to load data.
      * @param df The DataFrame object containing the data to be loaded.
      */
-    virtual void loadData(DataFrame& df, string destName) = 0;
+    virtual void loadData(DataFrame* df, string destName) = 0;
 
     /**
      * @brief Creates a DataFrame object with the header.
@@ -177,7 +177,7 @@ public:
      * 
      * @param sourceName The source from which to extract data.
      */
-    DataFrame* extractData(const string sourceName, const char delimiter, int startLine) override {
+    DataFrame* extractData(const string sourceName, const char delimiter, int startLine, vector<string> listData = {}) override {
         cout << "Extracting data from " << sourceName << " using csv extraction strategy." << endl;
         
         ifstream file(sourceName);
@@ -230,10 +230,9 @@ public:
      * @param df The DataFrame object containing the data to be loaded.
      * @param destName The destination to which to load data.
      */
-    void loadData(DataFrame& df, string destName) override {
+    void loadData(DataFrame* df, string destName) override {
         // Set a default name for the destination if it is not provided
         if (destName == "") {
-
             destName = "output.csv";
         }
         
@@ -243,11 +242,11 @@ public:
         ofstream out(destName);
 
         // Write the header to the file
-        for (int i = 0; i < df.getColumnCount(); i++) {
-            out << df.getColumnName(i);
+        for (int i = 0; i < df->getColumnCount(); i++) {
+            out << df->getColumnName(i);
 
             // Write a comma if it is not the last column
-            if (i < df.getColumnCount() - 1) {
+            if (i < df->getColumnCount() - 1) {
                 out << ",";
             }
         }
@@ -255,14 +254,14 @@ public:
         out << endl;
 
         // Iterate over the rows of the DataFrame
-        for (int i = 0; i < df.getRowCount(); i++) {
+        for (int i = 0; i < df->getRowCount(); i++) {
             // Iterate over the columns of the DataFrame
-            for (int j = 0; j < df.getColumnCount(); j++) {
+            for (int j = 0; j < df->getColumnCount(); j++) {
                 // Write the value of the cell to the file
-                out << df.getValueAt(i, j);
+                out << df->getValueAt(i, j);
 
                 // Write a comma if it is not the last column
-                if (j < df.getColumnCount() - 1) {
+                if (j < df->getColumnCount() - 1) {
                     out << ",";
                 }
             }
@@ -288,7 +287,7 @@ public:
      * 
      * @param sourceName The source from which to extract data.
      */
-    DataFrame* extractData(const string sourceName, const char delimiter, int startLine) override {
+    DataFrame* extractData(const string sourceName, const char delimiter, int startLine, vector<string> listData = {}) override {
         cout << "Extracting data from " << sourceName << " using txt extraction strategy." << endl;
         
         ifstream file(sourceName);
@@ -322,7 +321,7 @@ public:
      * 
      * @param destName The destination to which to load data.
      */
-    void loadData(DataFrame& df, string destName) override {
+    void loadData(DataFrame* df, string destName) override {
         // Set a default name for the destination if it is not provided
         if (destName == "") {
             destName = "output.txt";
@@ -339,7 +338,7 @@ public:
         cout.rdbuf(out.rdbuf());
 
         // Print the DataFrame
-        df.print();
+        df->print();
 
         // Restore cout buffer
         cout.rdbuf(coutbuf);
@@ -347,6 +346,44 @@ public:
         out.close();
     }
 };
+
+/**
+ * @brief A class representing a data repository strategy for extracting data from a list of strings.
+ * 
+ * The ListExtractionStrategy class provides a way to extract data from a list of strings.
+ * It implements the DataRepoStrategy interface.
+ */
+class ListExtractionStrategy : public DataRepoStrategy {
+public:
+    /**
+     * @brief Extracts data from the source.
+     *
+     * This method extracts data from the source using the list extraction strategy.
+     * 
+     * @param listData The list of strings from which to extract data.
+     */
+    DataFrame* extractData(const string sourceName, const char delimiter, int startLine, vector<string> listData) override {
+        // Create a DataFrame object with the header
+        DataFrame* df = createDataFrame(listData[0], delimiter);
+
+        // Read the rest of the lines
+        for (int i = 1; i < listData.size(); i++) {
+            // Dummy variable to count the number of columns in the line
+            int emptyCount;
+
+            addLineToDataFrame(listData[i], delimiter, *df, emptyCount);
+        }
+
+        return df;
+    }
+
+    // Not implemented
+    void loadData(DataFrame* df, string destName) override {
+        cout << "Does not support loading data from list." << endl;
+    }
+};
+
+
 
 
 /**
@@ -393,13 +430,16 @@ public:
      * @param sourceName The name of the source from which to extract data.
      * @return A pointer to the DataFrame object containing the extracted data.
      */
-    DataFrame* extractData(const string& sourceName, const char delimiter = ',', int startLine = 1) {
+    DataFrame* extractData(const string& sourceName = "", const char delimiter = ',', int startLine = 1, vector<string> listData = {}) {
         if (extractStrategy == "csv") {
             CsvExtractionStrategy csvExtractionStrategy;
             return csvExtractionStrategy.extractData(sourceName, delimiter, startLine);
         } else if (extractStrategy == "txt") {
             TxtExtractionStrategy txtExtractionStrategy;
             return txtExtractionStrategy.extractData(sourceName, delimiter, startLine);
+        } else if (extractStrategy == "list") {
+            ListExtractionStrategy listExtractionStrategy;
+            return listExtractionStrategy.extractData("", delimiter, startLine, listData);
         } else {
             cout << "Extraction strategy not supported." << endl;
             return nullptr;
@@ -414,7 +454,7 @@ public:
      * @param destName The name of the destination to which to load data.
      * @param df The DataFrame object containing the data to be loaded.
      */
-    void loadData(DataFrame& df, const string& destName="") {
+    void loadData(DataFrame* df, const string& destName="") {
         if (loadStrategy == "csv") {
             CsvExtractionStrategy csvExtractionStrategy;
             csvExtractionStrategy.loadData(df, destName);
@@ -450,12 +490,13 @@ public:
             cout << "No data to load." << endl;
             return;
         }
-        loadData(**extractDf, loadFileName);
-
-        // Delete the DataFrame object after loading the data
-        delete *extractDf;
+        loadData(*extractDf, loadFileName);
         
-        *extractDf = nullptr;
+        // Delete the old DataFrame
+        delete (*extractDf);
+
+        // Reset the pointer
+        (*extractDf) = nullptr;
     }
 
     // Interface for handling request from triggers
