@@ -50,41 +50,26 @@ To optimize the use of computing resources, Data Framework uses the C++ thread l
 
   - Installation guide: [https://web.archive.org/web/20171123102131/https://github.com/tronkko/dirent]()
 
-## Execution on Windows:
+## Execution on WSL Ubuntu (tested):
 
-1. First, run the proto:
-
-   1. From the root folder, generate the scripts from proto for CLIENT:
+1. First, **from the root folder**, generate the scripts from proto for CLIENT stub:
 
       - cd shared_proto ;
       - python -m grpc_tools.protoc --proto_path=. ./data_analytics.proto --python_out=../mock --grpc_python_out=../mock
 
-   2. (SERVER IN C++) Open a new terminal on root to execute the server (in Linux/WSL) as follows:
-      - cd src ; make ; ./server
-
-      - [OPTIONAL] SERVER IN PYTHON AVAILABE AFTER 
-         - python -m grpc_tools.protoc --proto_path=. ./data_analytics.proto --python_out=../src --grpc_python_out=../src
-      
-
-    3. Open a new terminal on root to execute the client as follows:
-      - cd mock ; python client.py
-2. Run the Mock and the ETL:
+2. Run the Mock and the ETL (SERVER):
 
 - The first alternative is to run the shell script:
 
-  - On the root folder type:
-    - `run_it.sh`
-- Another alternative:
+  - **From the root folder**, open a terminal and execute the command run the SERVER:
 
-  - **From the root folder**, execute the command to run the MOCK:
+    - `cd src ; make ; ./server`
+  
+  - **From the root folder**, open a terminal and run the Dashboard::
+
+    - `cd dashboard; - python -m streamlit run main.py`
+
+  - **From the root folder**, open a terminal and execute the command to run the MOCK:
 
     - `cd mock ; python main.py`
-  - **From the root folder**, execute the command run the ETL:
 
-    - `cd src ; g++ main.cpp -o main ; ./main.exe`
-
-2. Run the Dashboard:
-
-- **From the root folder**:
-
-  `cd dashboard; - python -m streamlit run main.py`
