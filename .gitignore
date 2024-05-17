@@ -170,3 +170,13 @@ shared_proto/data_analytics_pb2_grpc.py
 shared_proto/data_analytics_pb2.py
 src/data_analytics_pb2_grpc.py
 src/data_analytics_pb2.py
+shared_proto/data_analytics.grpc.pb.cc
+shared_proto/data_analytics.grpc.pb.h
+shared_proto/data_analytics.pb.cc
+shared_proto/data_analytics.pb.h
+src/main
+src/server
+src/ETL/proto/data_analytics.grpc.pb.cc
+src/ETL/proto/data_analytics.grpc.pb.h
+src/ETL/proto/data_analytics.pb.cc
+src/ETL/proto/data_analytics.pb.h
