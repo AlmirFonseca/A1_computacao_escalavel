@@ -34,6 +34,12 @@ To optimize the use of computing resources, Data Framework uses the C++ thread l
   - [IN CASE OF USING WINDOWS, INSTALL THE WSL [https://learn.microsoft.com/pt-br/windows/wsl/install] AS IT IS THE EASIEST WAY TO ]
   - https://grpc.io/docs/languages/cpp/quickstart/
 
+- protocol buffers:
+  - https://grpc.io/docs/protoc-installation/
+
+- libncursesw5-dev:
+  - sudo apt-get install libncursesw5-dev
+
 - streamlit
 
   - pip install streamlit
@@ -48,15 +54,17 @@ To optimize the use of computing resources, Data Framework uses the C++ thread l
 
 1. First, run the proto:
 
-   1. From the root folder, generate the scripts from proto for client and server:
+   1. From the root folder, generate the scripts from proto for CLIENT:
 
       - cd shared_proto ;
       - python -m grpc_tools.protoc --proto_path=. ./data_analytics.proto --python_out=../mock --grpc_python_out=../mock
 
    2. (SERVER IN C++) Open a new terminal on root to execute the server (in Linux/WSL) as follows:
       - cd src ; make ; ./server
-    (SERVER IN PYTHON AVAILABE AFTER 
-      - python -m grpc_tools.protoc --proto_path=. ./data_analytics.proto --python_out=../src --grpc_python_out=../src)
+
+      - [OPTIONAL] SERVER IN PYTHON AVAILABE AFTER 
+         - python -m grpc_tools.protoc --proto_path=. ./data_analytics.proto --python_out=../src --grpc_python_out=../src
+      
 
     3. Open a new terminal on root to execute the client as follows:
       - cd mock ; python client.py
