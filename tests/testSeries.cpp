@@ -76,6 +76,13 @@ int main() {
     // cout << "Sum of stringSeries: " << any_cast<string>(stringSeries.sum()) << endl; //-> Throws a runtime error
     cout << endl;
 
+    // Test the mean method
+    cout << "Mean of intSeries: " << (intSeries.mean()) << endl;
+    cout << "Mean of doubleSeries: " << (doubleSeries.mean()) << endl;
+    cout << "Mean of longSeries: " << (longSeries.mean()) << endl;
+    // cout << "Mean of stringSeries: " << any_cast<double>(stringSeries.mean()) << endl; //-> Throws a runtime error
+    cout << endl;
+
     Series<int> mySeries("Sample Series");
     mySeries.add(1);
     mySeries.add(2);

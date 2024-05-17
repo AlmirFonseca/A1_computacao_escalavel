@@ -829,6 +829,36 @@ public:
     }
 
     /**
+     * @brief Calculate the mean of a column in the DataFrame.
+     * 
+     * This method calculates the mean of a column in the DataFrame based on the column index.
+     * 
+     * @param columnIndex The index of the column to calculate the mean for.
+     * @return The mean of the column.
+     * @throws runtime_error If the column does not exist.
+     */
+    double mean(size_t columnIndex) {
+        if (columnIndex >= columnNames.size()) {
+            throw runtime_error("Column not found.");
+        }
+
+        return columns[columnNames[columnIndex]]->mean();
+    }
+
+    /**
+     * @brief Calculate the mean of a column in the DataFrame.
+     * 
+     * This method calculates the mean of a column in the DataFrame based on the column name.
+     * 
+     * @param columnName The name of the column to calculate the mean for.
+     * @return The mean of the column.
+     * @throws runtime_error If the column does not exist.
+     */
+    double mean(const string& columnName) {
+        return mean(getColumnIndex(columnName));
+    }
+
+    /**
      * @brief Count the occurrences of each value in a column.
      * 
      * This method counts the occurrences of each value in a column and returns the result as a new DataFrame.

@@ -125,6 +125,13 @@ public:
     virtual any sum() const = 0;
 
     /**
+     * @brief Computes the mean of the elements in the series.
+     * 
+     * @return The mean of the elements in the series.
+     */
+    virtual double mean() const = 0;
+
+    /**
      * @brief Prints the series.
      */
     virtual void print() const = 0;
@@ -338,6 +345,21 @@ public:
             return accumulate(data.begin(), data.end(), T(0));
         } else {
             throw runtime_error("Sum operation not supported for non-arithmetic types.");
+        }
+    }
+
+    /**
+     * @brief Computes the mean of the elements in the series.
+     * 
+     * This function computes the mean of the elements in the series. It is only available for arithmetic types.
+     * 
+     * @return The mean of the elements in the series.
+     */
+    double mean() const override {
+        if constexpr (is_arithmetic<T>::value) {
+            return accumulate(data.begin(), data.end(), 0.0) / data.size();
+        } else {
+            throw runtime_error("Mean operation not supported for non-arithmetic types.");
         }
     }
 

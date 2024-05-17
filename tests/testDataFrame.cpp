@@ -256,6 +256,24 @@ int main() {
         cout << "Resulting DataFrame after merging and summing:" << endl;
         mergedAndSumResult.print();
 
+        // Create a DataFrame with ID and Timestamp columns
+        DataFrame dfToGetMean({"ID", "Timestamp"});
+        dfToGetMean.addRow("A", 1715958895599);
+        dfToGetMean.addRow("B", 1715958895600);
+        dfToGetMean.addRow("C", 1715958895601);
+        dfToGetMean.addRow("D", 1715958895602);
+        dfToGetMean.addRow("E", 1715958895603);
+        dfToGetMean.addRow("F", 1715958895604);
+
+        // Get the sum of the Timestamp column
+        long long sum = any_cast<long long>(dfToGetMean.sum("Timestamp"));
+        cout << "Sum of Timestamp column: " << sum << endl;
+
+        // Get the mean of the Timestamp column
+        double mean = dfToGetMean.mean("Timestamp");
+        // Get the integer part of the mean
+        long long meanInt = static_cast<long long>(mean);
+        cout << "Mean of Timestamp column: " << meanInt << endl;
 
     } catch (const exception& e) {
         cerr << "Exception occurred: " << e.what() << endl;
