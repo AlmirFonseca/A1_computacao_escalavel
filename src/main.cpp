@@ -45,7 +45,7 @@ int main(int argc, char* argv[]) {
     ETL etl(csvDirPath, txtDirPath, requestDirPath, queueCV, queueDC, queueCA);
 
     // Create a thread pool with 8 threads
-    ThreadPool pool(8);
+    ThreadPool pool(6);
 
     //========= USING ONLY DATA FROM "CADE ANALYTICS"
 
@@ -166,17 +166,31 @@ int main(int argc, char* argv[]) {
     vector<Queue<DataFrame*>*> outputQueuesPipeline = {&queueCountView, &queueCountBuy, &queueProdView, &queueBuyRanking, &queueViewRanking};
 
     DataFrame* result_dataframes[5] = {nullptr, nullptr, nullptr, nullptr, nullptr};
+    DataFrame* dataframe_times[5] = {nullptr, nullptr, nullptr, nullptr, nullptr};
 
     // Tasks to merge the dataframes in the output queues into the result dataframes
     for (int i = 0; i < 5; i++) {
         DataFrame** result_dataframe = &result_dataframes[i];
+        DataFrame** dataframe_time = &dataframe_times[i];
         Queue<DataFrame*>* outputQueue = outputQueuesPipeline[i];
-        pool.addTask([outputQueue, result_dataframe, i]() {
+        pool.addTask([outputQueue, result_dataframe, dataframe_time]() {
             // Wait for the output queue to have data
             if (outputQueue->isEmpty()) return;
 
             // If the result dataframe is empty, set it to the first dataframe in the queue
-            if (*result_dataframe == nullptr) *result_dataframe = outputQueue->pop();
+            if (*result_dataframe == nullptr) 
+            {
+                *result_dataframe = outputQueue->pop();
+                
+                // Create a new dataframe with the time difference of the first dataframe
+                *dataframe_time = new DataFrame({"time"});
+
+                long long timestamp = (*result_dataframe)->getTimestamp();
+                long long current_timestamp = chrono::duration_cast<chrono::milliseconds>(chrono::system_clock::now().time_since_epoch()).count();
+                
+                // Add the time difference to the dataframe beetwen current timestamp and its timestamp
+                (*dataframe_time)->addRow(current_timestamp - timestamp);
+            }
 
             // Merge the dataframes in the output queue with the result dataframe
             while (!outputQueue->isEmpty()) {
@@ -185,6 +199,11 @@ int main(int argc, char* argv[]) {
                 // If the dataframe has only one column, sum the values else merge the dataframes
                 if (df->getColumnCount() == 1) **result_dataframe = DataFrame::mergeAndSum(**result_dataframe, *df, "", "Count");
                 else **result_dataframe = DataFrame::mergeAndSum(**result_dataframe, *df, "Value", "Count");
+
+                // Add the time difference to the dataframe beetwen current timestamp and its timestamp
+                long long timestamp = df->getTimestamp();
+                long long current_timestamp = chrono::duration_cast<chrono::milliseconds>(chrono::system_clock::now().time_since_epoch()).count();
+                (*dataframe_time)->addRow(current_timestamp - timestamp);
                 
                 // Delete the old DataFrame
                 delete df;
@@ -192,43 +211,46 @@ int main(int argc, char* argv[]) {
         });
     }
 
-    DataRepo* repoCountView = new DataRepo();
-    repoCountView->setExtractDf(&result_dataframes[0]);
-    repoCountView->setLoadStrategy("csv");
-    repoCountView->setLoadFileName("../processed/CountView.csv");
+    // Vector of file names and which trigger activates them
+    vector<string> fileNames = {"CountView.csv", "CountBuy.csv", "ProdView.csv", "BuyRanking.csv", "ViewRanking.csv"};
+    vector<string> triggeredBy = {"Min", "Min", "Min", "Hour", "Hour"};
 
-    DataRepo* repoCountBuy = new DataRepo();
-    repoCountBuy->setExtractDf(&result_dataframes[1]);
-    repoCountBuy->setLoadStrategy("csv");
-    repoCountBuy->setLoadFileName("../processed/CountBuy.csv");
+    // Triggers to activate the DataRepos
+    int MIN = 5;
+    int HOUR = 10;
 
-    DataRepo* repoProdView = new DataRepo();
-    repoProdView->setExtractDf(&result_dataframes[2]);
-    repoProdView->setLoadStrategy("csv");
-    repoProdView->setLoadFileName("../processed/ProdView.csv");
+    Trigger* triggerMin = new TimerTrigger(std::chrono::seconds(MIN));
+    Trigger* triggerHour = new TimerTrigger(std::chrono::seconds(HOUR));
 
-    DataRepo* repoBuyRanking = new DataRepo();
-    repoBuyRanking->setExtractDf(&result_dataframes[3]);
-    repoBuyRanking->setLoadStrategy("csv");
-    repoBuyRanking->setLoadFileName("../processed/BuyRanking.csv");
+    // Create a DataRepo for each pipeline
+    for (int i = 0; i < 5; i++) {
+        // Create a DataRepo for each result dataframe
+        DataRepo* dataRepo = new DataRepo();
+        dataRepo->setExtractDf(&result_dataframes[i]);
+        dataRepo->setLoadStrategy("csv");
+        dataRepo->setLoadFileName("../processed/" + fileNames[i]);
 
-    DataRepo* repoViewRanking = new DataRepo();
-    repoViewRanking->setExtractDf(&result_dataframes[4]);
-    repoViewRanking->setLoadStrategy("csv");
-    repoViewRanking->setLoadFileName("../processed/ViewRanking.csv");
+        // Create a DataRepo for each time dataframe
+        DataRepo* dataRepoTime = new DataRepo();
+        dataRepoTime->setExtractDf(&dataframe_times[i]);
+        dataRepoTime->setLoadStrategy("csv");
+        dataRepoTime->setLoadFileName("../processed/times_" + fileNames[i]);
 
+        // Set the trigger for each pipeline
+        if (triggeredBy[i] == "Min") {
+            triggerMin->addObserver(std::make_shared<DataRepo>(*dataRepo));
+            triggerMin->addObserver(std::make_shared<DataRepo>(*dataRepoTime));
+        } else if (triggeredBy[i] == "Hour") {
+            triggerHour->addObserver(std::make_shared<DataRepo>(*dataRepo));
+            triggerHour->addObserver(std::make_shared<DataRepo>(*dataRepoTime));
+        }
+    }
 
-    Trigger* triggerMin = new TimerTrigger(std::chrono::seconds(5));
-    triggerMin->addObserver(std::make_shared<DataRepo>(*repoCountView));
-    triggerMin->addObserver(std::make_shared<DataRepo>(*repoCountBuy));
-    triggerMin->addObserver(std::make_shared<DataRepo>(*repoProdView));
-
-    Trigger* triggerHour = new TimerTrigger(std::chrono::seconds(10));
-    triggerHour->addObserver(std::make_shared<DataRepo>(*repoBuyRanking));
-    triggerHour->addObserver(std::make_shared<DataRepo>(*repoViewRanking));
-
+    // Trigger to activate the ETL
     TimerTrigger timer(std::chrono::seconds(1));
     timer.addObserver(std::make_shared<ETL>(etl));
+    
+    // Activate the triggers
     timer.activate();
     triggerHour->activate();
     triggerMin->activate();

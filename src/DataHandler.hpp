@@ -87,6 +87,7 @@ public:
 
             // Read the DataFrame from the input queue
             DataFrame* df = inputQueue->pop();
+            long long timestamp = df->getTimestamp();
 
             // Count the lines in the DataFrame
             int lines = df->getRowCount();
@@ -96,6 +97,7 @@ public:
 
             // Create a new DataFrame with the count
             DataFrame* countDf = new DataFrame({"Count"});
+            countDf->setTimestamp(timestamp);
             countDf->addRow(lines);
 
             // Write the DataFrame to the output queues
@@ -162,9 +164,11 @@ public:
         while (!inputQueue->isEmpty()) {
             // Read the DataFrame from the input queue
             DataFrame* df = inputQueue->pop();
+            long long timestamp = df->getTimestamp();
 
             // Count the values in the DataFrame
             DataFrame* countDf = new DataFrame();
+            countDf->setTimestamp(timestamp);
             *countDf = df->valueCounts(columnName);
 
             // Delete the DataFrame
@@ -201,9 +205,11 @@ public:
         while (!inputQueue->isEmpty()) {
             // Read the DataFrame from the input queue
             DataFrame* dfLeft = inputQueue->pop();
+            long long timestamp = dfLeft->getTimestamp();
 
             // Join the DataFrames
             DataFrame* dfJoined = new DataFrame();
+            dfJoined->setTimestamp(timestamp);
             *dfJoined = dfLeft->leftJoin(dfRight, keyColumnName, dropKeyColumn);
 
             // Delete the left DataFrame
