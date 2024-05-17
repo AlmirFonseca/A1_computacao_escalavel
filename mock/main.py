@@ -19,7 +19,7 @@ if __name__ == "__main__":
         num_new_products_per_cycle=100,
     )
 
-    connection = grpc.insecure_channel('localhost:123456')
+    connection = grpc.insecure_channel('localhost:50051')
     stub = data_analytics_pb2_grpc.SimulationServiceStreamStub(connection)
 
     sim = simulation.Simulation(params, stub)

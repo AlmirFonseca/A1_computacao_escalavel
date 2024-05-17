@@ -6,7 +6,7 @@ import csv
 from collections import deque
 from graph_user_flow import *
 import time
-import msvcrt
+# import msvcrt
 import rpc
 import time
 
@@ -409,16 +409,16 @@ class Simulation:
                 f.writelines(self.log_flow)
                 # self.release_lock(log_cycle)
 
-    def acquire_lock(self, file_path):
-        try:
-            msvcrt.locking(open(file_path, "rb").fileno(), msvcrt.LK_NBLCK, 1)
-            return True
-        except IOError:
-            return False
+    # def acquire_lock(self, file_path):
+    #     try:
+    #         msvcrt.locking(open(file_path, "rb").fileno(), msvcrt.LK_NBLCK, 1)
+    #         return True
+    #     except IOError:
+    #         return False
 
-    def release_lock(self, file_path):
-        try:
-            msvcrt.locking(open(file_path, "rb").fileno(), msvcrt.LK_UNLCK, 1)
-        except IOError:
-            pass
+    # def release_lock(self, file_path):
+    #     try:
+    #         msvcrt.locking(open(file_path, "rb").fileno(), msvcrt.LK_UNLCK, 1)
+    #     except IOError:
+    #         pass
 

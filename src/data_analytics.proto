@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+package data_analytics_package;
+
+message Empty {}
+
+message logdataanalyticsWithTime{
+  int64 timestamp = 1;
+  repeated string log = 2;
+}
+
+service SimulationServiceStream {
+  rpc ReportCycle(logdataanalyticsWithTime) returns (Empty);
+}

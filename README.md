@@ -21,6 +21,16 @@ To optimize the use of computing resources, Data Framework uses the C++ thread l
 
 ## Libraries used:
 
+- networkx
+  - pip install networkx
+
+- faker
+  - pip install faker
+
+- GRPC para Python:
+  - https://grpc.io/docs/languages/python/quickstart/
+
+
 - streamlit
 
   - pip install streamlit
@@ -40,6 +50,16 @@ To optimize the use of computing resources, Data Framework uses the C++ thread l
       - cd shared_proto ;
       - python -m grpc_tools.protoc --proto_path=. ./data_analytics.proto --python_out=../mock --grpc_python_out=../mock
       - python -m grpc_tools.protoc --proto_path=. ./data_analytics.proto --python_out=../src --grpc_python_out=../src
+
+      cpp:
+       protoc -I=. --cpp_out=../src --grpc_out=../src --plugin=protoc-gen-grpc=$(which grpc_cpp_plugin) data_analytics.proto
+
+      g++ -std=c++17 -I /usr/local/include -pthread -c ../src/data_analytics.pb.cc -o ../src/data_analytics.pb.o
+      <!-- g++ -std=c++17 -I /usr/local/include -pthread -c ../src/data_analytics.grpc.pb.cc -o ../src/data_analytics.grpc.pb.o
+      g++ -std=c++17 -I /usr/local/include -pthread -c ../src/server.cpp -o ../src/server.o
+      g++ -std=c++17 -L /usr/local/lib -pthread ../src/data_analytics.pb.o ../src/data_analytics.grpc.pb.o ../src/server.o -o DataAnalyticsServer -lgrpc++ -lprotobuf -lpthread -->
+
+
    2. Open a new terminal on root to execute the server as follows:
       - cd src ; python server.py
     3. Open a new terminal on root to execute the client as follows:
