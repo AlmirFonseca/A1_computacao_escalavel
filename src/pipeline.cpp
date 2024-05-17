@@ -137,6 +137,7 @@ int process(Queue<DataFrame*>* queueCA, int maxQueueSize, int numThreads){
     vector<Queue<DataFrame*>*> outputQueuesPipeline = {&queueCountView, &queueCountBuy, &queueProdView, &queueBuyRanking, &queueViewRanking};
 
     DataFrame* result_dataframes[5] = {nullptr, nullptr, nullptr, nullptr, nullptr};
+    mutex result_mutexes[5];
     DataFrame* dataframe_times[5] = {nullptr, nullptr, nullptr, nullptr, nullptr};
 
     // Tasks to merge the dataframes in the output queues into the result dataframes
@@ -144,42 +145,49 @@ int process(Queue<DataFrame*>* queueCA, int maxQueueSize, int numThreads){
         DataFrame** result_dataframe = &result_dataframes[i];
         DataFrame** dataframe_time = &dataframe_times[i];
         Queue<DataFrame*>* outputQueue = outputQueuesPipeline[i];
-        pool.addTask([outputQueue, result_dataframe, dataframe_time]() {
+        mutex* result_mutex = &result_mutexes[i];
+
+        pool.addTask([outputQueue, result_dataframe, dataframe_time, result_mutex]() {
             // Wait for the output queue to have data
             if (outputQueue->isEmpty()) return;
 
-            // If the result dataframe is empty, set it to the first dataframe in the queue
-            if (*result_dataframe == nullptr) 
-            {
-                *result_dataframe = outputQueue->pop();
-                
-                // Create a new dataframe with the time difference of the first dataframe
-                *dataframe_time = new DataFrame({"time"});
-
-                long long timestamp = (*result_dataframe)->getTimestamp();
-                long long current_timestamp = chrono::duration_cast<chrono::milliseconds>(chrono::system_clock::now().time_since_epoch()).count();
-                
-                // Add the time difference to the dataframe beetwen current timestamp and its timestamp
-                (*dataframe_time)->addRow(current_timestamp - timestamp);
-            }
-
+            
             // Merge the dataframes in the output queue with the result dataframe
             while (!outputQueue->isEmpty()) {
-                if (*result_dataframe == nullptr) return;
-
                 DataFrame* df = outputQueue->pop();
-                
-                // If the dataframe has only one column, sum the values else merge the dataframes
-                if (df->getColumnCount() == 1) **result_dataframe = DataFrame::mergeAndSum(**result_dataframe, *df, "", "Count");
-                else **result_dataframe = DataFrame::mergeAndSum(**result_dataframe, *df, "Value", "Count");
 
-                // Add the time difference to the dataframe beetwen current timestamp and its timestamp
-                long long timestamp = df->getTimestamp();
-                long long current_timestamp = chrono::duration_cast<chrono::milliseconds>(chrono::system_clock::now().time_since_epoch()).count();
-                (*dataframe_time)->addRow(current_timestamp - timestamp);
-                
-                // Delete the old DataFrame
-                delete df;
+                {
+                    lock_guard<mutex> lock(*result_mutex);
+
+                    // If the result dataframe is empty, set it to the first dataframe in the queue
+                    if (*result_dataframe == nullptr) 
+                    {
+                        *result_dataframe = df;
+                        
+                        // Create a new dataframe with the time difference of the first dataframe
+                        *dataframe_time = new DataFrame({"time"});
+
+                        long long timestamp = (*result_dataframe)->getTimestamp();
+                        long long current_timestamp = chrono::duration_cast<chrono::milliseconds>(chrono::system_clock::now().time_since_epoch()).count();
+                        
+                        // Add the time difference to the dataframe beetwen current timestamp and its timestamp
+                        (*dataframe_time)->addRow(current_timestamp - timestamp);
+                    }
+                    else 
+                    {
+                        // If the dataframe has only one column, sum the values else merge the dataframes
+                        if (df->getColumnCount() == 1) **result_dataframe = DataFrame::mergeAndSum(**result_dataframe, *df, "", "Count");
+                        else **result_dataframe = DataFrame::mergeAndSum(**result_dataframe, *df, "Value", "Count");
+                        
+                        // Add the time difference to the dataframe beetwen current timestamp and its timestamp
+                        long long timestamp = df->getTimestamp();
+                        long long current_timestamp = chrono::duration_cast<chrono::milliseconds>(chrono::system_clock::now().time_since_epoch()).count();
+                        (*dataframe_time)->addRow(current_timestamp - timestamp);
+
+                        // Delete the old DataFrame
+                        delete df;
+                    }
+                }
             }
         });
     }
@@ -201,13 +209,13 @@ int process(Queue<DataFrame*>* queueCA, int maxQueueSize, int numThreads){
     for (int i = 0; i < 5; i++) {
         // Create a DataRepo for each result dataframe
         DataRepo* dataRepo = new DataRepo();
-        dataRepo->setExtractDf(&result_dataframes[i]);
+        dataRepo->setExtractDf(&result_dataframes[i], &result_mutexes[i]);
         dataRepo->setLoadStrategy("csv");
         dataRepo->setLoadFileName("../processed/" + fileNames[i]);
 
         // Create a DataRepo for each time dataframe
         DataRepo* dataRepoTime = new DataRepo();
-        dataRepoTime->setExtractDf(&dataframe_times[i]);
+        dataRepoTime->setExtractDf(&dataframe_times[i], &result_mutexes[i]);
         dataRepoTime->setLoadStrategy("csv");
         dataRepoTime->setLoadFileName("../processed/times_" + fileNames[i]);
 

@@ -397,6 +397,7 @@ private:
     string extractStrategy; /**< The extraction strategy for the data repository. */
     string loadStrategy; /**< The loading strategy for the data repository. */
     DataFrame** extractDf; /**< The DataFrame object containing the extracted data. */
+    mutex* mtx; /**< The mutex for the DataFrame object. */
     string loadFileName; /**< The name of the file to load the data into. */
 
 public:
@@ -476,8 +477,9 @@ public:
         cout << "Data repository loading strategy: " << loadStrategy << endl;
     }
 
-    void setExtractDf(DataFrame** df) {
+    void setExtractDf(DataFrame** df, mutex* mtx) {
         this->extractDf = df;
+        this->mtx = mtx;
     }
 
     void setLoadFileName(string fileName) {
@@ -486,17 +488,25 @@ public:
 
     // Interface for notification (update) from triggers
     void updateOnTimeTrigger() override {
-        if (*extractDf == nullptr) {
-            cout << "No data to load." << endl;
-            return;
-        }
-        loadData(*extractDf, loadFileName);
-        
-        // Delete the old DataFrame
-        delete (*extractDf);
+        {
+            // Check if there is data to load
+            if (*extractDf == nullptr) {
+                cout << "No data to load." << endl;
+                return;
+            }
+            // Lock the mutex
+            lock_guard<mutex> lock(*mtx);
+            
+            // Load the data
+            loadData(*extractDf, loadFileName);
 
-        // Reset the pointer
-        (*extractDf) = nullptr;
+            // Delete the old DataFrame
+            delete (*extractDf);
+
+            // Reset the pointer
+            (*extractDf) = nullptr;
+        }
+
     }
 
     // Interface for handling request from triggers
