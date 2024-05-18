@@ -175,3 +175,7 @@ if check_for_updates(st.session_state.data_dict):
 st.session_state.timer = st.empty()
 time.sleep(UPDATE_INTERVAL)
 st.rerun()
+
+if __name__ == "__main__":
+    # Call the command that runs the Streamlit app
+    os.system("python -m streamlit run main.py")
