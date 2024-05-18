@@ -115,11 +115,11 @@ def display_data(data_dict):
     st.divider()
 
     # Load test output
-    time_CountView_df = data_dict["time_CountView"]["data"]
-    time_CountBuy_df = data_dict["time_CountBuy"]["data"]
-    time_BuyRanking_df = data_dict["time_BuyRanking"]["data"]
-    time_ProdView_df = data_dict["time_ProdView"]["data"]
-    time_ViewRanking_df = data_dict["time_ViewRanking"]["data"]
+    time_CountView_df = data_dict["times_CountView"]["data"]
+    time_CountBuy_df = data_dict["times_CountBuy"]["data"]
+    time_BuyRanking_df = data_dict["times_BuyRanking"]["data"]
+    time_ProdView_df = data_dict["times_ProdView"]["data"]
+    time_ViewRanking_df = data_dict["times_ViewRanking"]["data"]
 
     # Get the mean of each time column
     mean_time_CountView = time_CountView_df["time"].mean()
