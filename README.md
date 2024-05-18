@@ -67,7 +67,7 @@ To optimize the use of computing resources, Data Framework uses the C++ thread l
   
   - **From the root folder**, open a terminal and run the Dashboard::
 
-    - `cd dashboard; - python -m streamlit run main.py`
+    - `cd dashboard; python -m streamlit run main.py`
 
   - **From the root folder**, open a terminal and execute the command to run the MOCK:
 
