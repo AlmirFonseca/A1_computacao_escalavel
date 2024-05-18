@@ -148,7 +148,7 @@ def display_data(data_dict):
 
     # Plot a line chart
     st.subheader("Tempo médio de execução de cada query em milisegundos:")
-    st.line_chart(df, x="Time", color=["CountView", "CountBuy", "BuyRanking", "ProdView", "ViewRanking"])
+    st.line_chart(df, x="Time")
 
 
 st.title("E-commerce Dashboard")
