@@ -10,13 +10,6 @@ FILE_NAMES = ["CountView", "CountBuy", "BuyRanking", "ProdView", "ViewRanking",
               "times_CountView", "times_CountBuy", "times_BuyRanking", "times_ProdView", "times_ViewRanking"]
 UPDATE_INTERVAL = 3 # In seconds
 
-line_CountView = list()
-line_CountBuy = list()
-line_BuyRanking = list()
-line_ProdView = list()
-line_ViewRanking = list()
-line_timestamps = list()
-
 def load_data(file_name):
     """Load data from a CSV file."""
     return pd.read_csv(BASE_FOLDER + file_name + ".csv")
@@ -128,16 +121,30 @@ def display_data(data_dict):
     mean_time_ProdView = time_ProdView_df["time"].mean()
     mean_time_ViewRanking = time_ViewRanking_df["time"].mean()
 
+    # Save the dataframe into a pickle file and if exists, load it
+    if os.path.exists("line_chart_data.pkl"):
+        aux_df = pd.read_pickle("line_chart_data.pkl")
+    else:
+        aux_df = pd.DataFrame()
+
+    # Define lists to store the values
+    line_CountView = []
+    line_CountBuy = []
+    line_BuyRanking = []
+    line_ProdView = []
+    line_ViewRanking = []
+    line_timestamps = []
+
     # Plot a line chart with one line for each time column
     line_CountView.append(mean_time_CountView)
     line_CountBuy.append(mean_time_CountBuy)
     line_BuyRanking.append(mean_time_BuyRanking)
     line_ProdView.append(mean_time_ProdView)
     line_ViewRanking.append(mean_time_ViewRanking)
-    line_timestamps.append(time.strftime("%H:%M:%S", time.localtime(time.time())))
+    line_timestamps.append(str(time.strftime("%H:%M:%S", time.localtime(time.time()))))
 
     # Convert into a dataframe
-    df = pd.DataFrame({
+    new_df = pd.DataFrame({
         "CountView": line_CountView,
         "CountBuy": line_CountBuy,
         "BuyRanking": line_BuyRanking,
@@ -145,10 +152,23 @@ def display_data(data_dict):
         "ViewRanking": line_ViewRanking,
         "Time": line_timestamps
     })
+    # Concatenate the new values with the existing ones if the value is different
+    if not aux_df.empty and aux_df["CountView"].iloc[-1] != new_df["CountView"].iloc[-1]:   
+        df = pd.concat([aux_df, new_df], ignore_index=True)
+    elif aux_df.empty:
+        df = new_df
+    else:
+        df = aux_df
+
+    print(len(df))
+
+    # Save the dataframe into a pickle file
+    df.to_pickle("line_chart_data.pkl")
+
 
     # Plot a line chart
     st.subheader("Tempo médio de execução de cada query em milisegundos:")
-    st.line_chart(df, x="Time")
+    st.line_chart(df, x="Time", y=["CountView", "CountBuy", "BuyRanking", "ProdView", "ViewRanking"])
 
 
 st.title("E-commerce Dashboard")
