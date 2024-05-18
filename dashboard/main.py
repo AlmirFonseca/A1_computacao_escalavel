@@ -7,7 +7,7 @@ import re
 
 BASE_FOLDER = "../processed/"
 FILE_NAMES = ["CountView", "CountBuy", "BuyRanking", "ProdView", "ViewRanking",
-              "time_CountView", "time_CountBuy", "time_BuyRanking", "time_ProdView", "time_ViewRanking"]
+              "times_CountView", "times_CountBuy", "times_BuyRanking", "times_ProdView", "times_ViewRanking"]
 UPDATE_INTERVAL = 3 # In seconds
 
 line_CountView = list()
