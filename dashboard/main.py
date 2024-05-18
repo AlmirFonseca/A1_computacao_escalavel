@@ -6,8 +6,16 @@ import time
 import re
 
 BASE_FOLDER = "../processed/"
-FILE_NAMES = ["CountView", "CountBuy", "BuyRanking", "ProdView", "ViewRanking"]
+FILE_NAMES = ["CountView", "CountBuy", "BuyRanking", "ProdView", "ViewRanking",
+              "time_CountView", "time_CountBuy", "time_BuyRanking", "time_ProdView", "time_ViewRanking"]
 UPDATE_INTERVAL = 3 # In seconds
+
+line_CountView = list()
+line_CountBuy = list()
+line_BuyRanking = list()
+line_ProdView = list()
+line_ViewRanking = list()
+line_timestamps = list()
 
 def load_data(file_name):
     """Load data from a CSV file."""
@@ -105,6 +113,42 @@ def display_data(data_dict):
     st.bar_chart(filtered_view_ranking_df, x="Product ID", y="View Count")
 
     st.divider()
+
+    # Load test output
+    time_CountView_df = data_dict["time_CountView"]["data"]
+    time_CountBuy_df = data_dict["time_CountBuy"]["data"]
+    time_BuyRanking_df = data_dict["time_BuyRanking"]["data"]
+    time_ProdView_df = data_dict["time_ProdView"]["data"]
+    time_ViewRanking_df = data_dict["time_ViewRanking"]["data"]
+
+    # Get the mean of each time column
+    mean_time_CountView = time_CountView_df["time"].mean()
+    mean_time_CountBuy = time_CountBuy_df["time"].mean()
+    mean_time_BuyRanking = time_BuyRanking_df["time"].mean()
+    mean_time_ProdView = time_ProdView_df["time"].mean()
+    mean_time_ViewRanking = time_ViewRanking_df["time"].mean()
+
+    # Plot a line chart with one line for each time column
+    line_CountView.append(mean_time_CountView)
+    line_CountBuy.append(mean_time_CountBuy)
+    line_BuyRanking.append(mean_time_BuyRanking)
+    line_ProdView.append(mean_time_ProdView)
+    line_ViewRanking.append(mean_time_ViewRanking)
+    line_timestamps.append(time.strftime("%H:%M:%S", time.localtime(time.time())))
+
+    # Convert into a dataframe
+    df = pd.DataFrame({
+        "CountView": line_CountView,
+        "CountBuy": line_CountBuy,
+        "BuyRanking": line_BuyRanking,
+        "ProdView": line_ProdView,
+        "ViewRanking": line_ViewRanking,
+        "Time": line_timestamps
+    })
+
+    # Plot a line chart
+    st.subheader("Tempo médio de execução de cada query em milisegundos:")
+    st.line_chart(df, x="Time", color=["CountView", "CountBuy", "BuyRanking", "ProdView", "ViewRanking"])
 
 
 st.title("E-commerce Dashboard")
